@@ -1,0 +1,620 @@
+<div class="space-y-6">
+  <!-- Page header -->
+  <div>
+    <h1 class="text-xl font-semibold text-white">Settings</h1>
+    <p class="text-slate-500 text-sm mt-0.5">Manage Trading212 API credentials and active environment</p>
+  </div>
+
+  <!-- Success banner -->
+  @if (successMsg()) {
+    <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-start gap-3" role="status">
+      <svg class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <p class="text-emerald-300 text-sm">{{ successMsg() }}</p>
+    </div>
+  }
+
+  <!-- Operation error banner -->
+  @if (operationError()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3" role="alert">
+      <svg class="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <p class="text-red-300 text-sm">{{ operationError() }}</p>
+    </div>
+  }
+
+  <!-- Page load error -->
+  @if (pageError()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3" role="alert">
+      <p class="text-red-300 text-sm">{{ pageError() }}</p>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex items-center justify-center h-48" aria-label="Loading settings">
+      <svg class="w-6 h-6 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+    </div>
+  }
+
+  @if (!loading()) {
+    <!-- ── Active Account Card ─────────────────────────────────────────────── -->
+    <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Account</p>
+        @if (activating()) {
+          <svg class="w-4 h-4 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        }
+      </div>
+
+      @if (activeCredentials(); as active) {
+        <div class="flex flex-wrap items-center gap-4 mb-5">
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Environment</p>
+            <app-badge [label]="active.environment.toUpperCase()" variant="demo" />
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Validation</p>
+            <app-badge
+              [label]="validationLabel(active.validationStatus)"
+              [variant]="validationBadgeVariant(active.validationStatus)"
+            />
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Last validated</p>
+            <p class="text-sm text-slate-300 font-mono">{{ formatDateTime(active.lastValidatedAt) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">API key</p>
+            <p class="text-sm text-slate-300 font-mono">{{ active.maskedApiKey }}</p>
+          </div>
+        </div>
+      } @else {
+        <div class="flex items-center gap-3 mb-5">
+          <app-badge label="None active" variant="demo" />
+          <p class="text-slate-500 text-sm">Add credentials below and activate one to start syncing.</p>
+        </div>
+      }
+
+      <!-- Switch buttons -->
+      <div class="flex flex-wrap gap-3">
+        <button
+          type="button"
+          (click)="requestSwitch('demo')"
+          [disabled]="anyBusy() || !demoCredentials() || activeEnvironment() === 'demo'"
+          class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Switch to DEMO
+        </button>
+        <button
+          type="button"
+          (click)="requestSwitch('live')"
+          [disabled]="anyBusy() || !liveCredentials() || activeEnvironment() === 'live'"
+          class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Switch to LIVE
+        </button>
+      </div>
+
+      <!-- Switch confirmation -->
+      @if (confirmSwitch(); as env) {
+        <div class="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
+          <p class="text-amber-300 text-sm">
+            Switch active environment to <strong class="font-semibold">{{ env.toUpperCase() }}</strong>?
+            All data views and syncs will use {{ env }} credentials.
+          </p>
+          <div class="flex gap-2 shrink-0">
+            <button
+              type="button"
+              (click)="confirmSwitchEnvironment()"
+              class="px-3 py-1.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              Confirm
+            </button>
+            <button
+              type="button"
+              (click)="cancelSwitch()"
+              class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- ── Demo Credentials Card ───────────────────────────────────────────── -->
+    <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Demo Credentials</p>
+          @if (demoCredentials()?.isActive) {
+            <app-badge label="Active" variant="running" />
+          }
+        </div>
+        @if (validating() === 'demo' || deleting() === 'demo' || saving() === 'demo') {
+          <svg class="w-4 h-4 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        }
+      </div>
+
+      @if (demoMode() === 'save') {
+        <!-- Save new demo credentials form -->
+        <form (submit)="$event.preventDefault(); saveCredentials('demo')" class="space-y-4">
+          <div>
+            <label for="demo-api-key" class="block text-xs text-slate-400 mb-1.5">API Key <span class="text-red-400" aria-label="required">*</span></label>
+            <input
+              id="demo-api-key"
+              type="password"
+              autocomplete="off"
+              [value]="demoApiKey()"
+              (input)="demoApiKey.set($any($event.target).value)"
+              placeholder="Paste your Trading212 Demo API key"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+              required
+            />
+          </div>
+          <div>
+            <label for="demo-api-secret" class="block text-xs text-slate-400 mb-1.5">API Secret <span class="text-slate-600">(optional)</span></label>
+            <input
+              id="demo-api-secret"
+              type="password"
+              autocomplete="off"
+              [value]="demoApiSecret()"
+              (input)="demoApiSecret.set($any($event.target).value)"
+              placeholder="Leave blank if not required"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              [disabled]="!demoApiKey().trim() || saving() === 'demo'"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              (click)="cancelForm('demo')"
+              class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      } @else if (demoMode() === 'update') {
+        <!-- Update demo credentials form -->
+        <form (submit)="$event.preventDefault(); updateCredentials('demo')" class="space-y-4">
+          <p class="text-xs text-slate-500 mb-3">Enter a new API key. The validation status will be reset.</p>
+          <div>
+            <label for="demo-api-key-update" class="block text-xs text-slate-400 mb-1.5">New API Key <span class="text-red-400" aria-label="required">*</span></label>
+            <input
+              id="demo-api-key-update"
+              type="password"
+              autocomplete="off"
+              [value]="demoApiKey()"
+              (input)="demoApiKey.set($any($event.target).value)"
+              placeholder="Paste new Trading212 Demo API key"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+              required
+            />
+          </div>
+          <div>
+            <label for="demo-api-secret-update" class="block text-xs text-slate-400 mb-1.5">New API Secret <span class="text-slate-600">(optional)</span></label>
+            <input
+              id="demo-api-secret-update"
+              type="password"
+              autocomplete="off"
+              [value]="demoApiSecret()"
+              (input)="demoApiSecret.set($any($event.target).value)"
+              placeholder="Leave blank if not required"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              [disabled]="!demoApiKey().trim() || saving() === 'demo'"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Update
+            </button>
+            <button
+              type="button"
+              (click)="cancelForm('demo')"
+              class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      } @else if (demoCredentials(); as cred) {
+        <!-- Demo credentials view -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+          <div>
+            <p class="text-xs text-slate-500 mb-1">API Key</p>
+            <p class="text-sm text-slate-300 font-mono">{{ cred.maskedApiKey }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Validation</p>
+            <app-badge
+              [label]="validationLabel(cred.validationStatus)"
+              [variant]="validationBadgeVariant(cred.validationStatus)"
+            />
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Last validated</p>
+            <p class="text-sm text-slate-400 font-mono">{{ formatDateTime(cred.lastValidatedAt) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Updated</p>
+            <p class="text-sm text-slate-400 font-mono">{{ formatDateTime(cred.updatedAt) }}</p>
+          </div>
+        </div>
+
+        @if (cred.lastValidationError) {
+          <div class="mb-5 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p class="text-xs text-slate-500 mb-0.5">Last validation error</p>
+            <p class="text-red-300 text-xs font-mono">{{ cred.lastValidationError }}</p>
+          </div>
+        }
+
+        <!-- Delete confirmation inline -->
+        @if (confirmDelete() === 'demo') {
+          <div class="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <p class="text-red-300 text-sm">Delete DEMO credentials? This cannot be undone.</p>
+            <div class="flex gap-2 shrink-0">
+              <button
+                type="button"
+                (click)="confirmDeleteCredentials()"
+                class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                (click)="cancelDelete()"
+                class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Activate confirmation inline -->
+        @if (confirmActivate() === 'demo') {
+          <div class="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <p class="text-amber-300 text-sm">
+              Set DEMO as the active environment? All syncs and data views will use these credentials.
+            </p>
+            <div class="flex gap-2 shrink-0">
+              <button
+                type="button"
+                (click)="confirmActivateEnvironment()"
+                class="px-3 py-1.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                (click)="cancelActivate()"
+                class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Action buttons -->
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            (click)="validateCredentials('demo')"
+            [disabled]="isEnvBusy('demo')"
+            class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            @if (validating() === 'demo') { Validating… } @else { Validate }
+          </button>
+          <button
+            type="button"
+            (click)="showUpdateForm('demo')"
+            [disabled]="isEnvBusy('demo')"
+            class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Update Key
+          </button>
+          <button
+            type="button"
+            (click)="requestActivate('demo')"
+            [disabled]="isEnvBusy('demo') || cred.isActive"
+            class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            @if (activating() === 'demo') { Activating… } @else { Set as Active }
+          </button>
+          <button
+            type="button"
+            (click)="requestDelete('demo')"
+            [disabled]="isEnvBusy('demo')"
+            class="px-3 py-1.5 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            @if (deleting() === 'demo') { Deleting… } @else { Delete }
+          </button>
+        </div>
+      } @else {
+        <!-- No demo credentials -->
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <app-badge label="Not configured" variant="demo" />
+            <p class="text-slate-500 text-sm">Add a Demo API key to enable demo account access.</p>
+          </div>
+          <button
+            type="button"
+            (click)="showSaveForm('demo')"
+            [disabled]="anyBusy()"
+            class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Add Demo Key
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- ── Live Credentials Card ───────────────────────────────────────────── -->
+    <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Live Credentials</p>
+          @if (liveCredentials()?.isActive) {
+            <app-badge label="Active" variant="running" />
+          }
+          <app-badge label="Real money" variant="error" />
+        </div>
+        @if (validating() === 'live' || deleting() === 'live' || saving() === 'live') {
+          <svg class="w-4 h-4 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        }
+      </div>
+
+      @if (liveMode() === 'save') {
+        <!-- Save new live credentials form -->
+        <form (submit)="$event.preventDefault(); saveCredentials('live')" class="space-y-4">
+          <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg mb-2">
+            <p class="text-amber-300 text-xs">You are adding credentials for a live Trading212 account. These credentials have access to real funds.</p>
+          </div>
+          <div>
+            <label for="live-api-key" class="block text-xs text-slate-400 mb-1.5">API Key <span class="text-red-400" aria-label="required">*</span></label>
+            <input
+              id="live-api-key"
+              type="password"
+              autocomplete="off"
+              [value]="liveApiKey()"
+              (input)="liveApiKey.set($any($event.target).value)"
+              placeholder="Paste your Trading212 Live API key"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+              required
+            />
+          </div>
+          <div>
+            <label for="live-api-secret" class="block text-xs text-slate-400 mb-1.5">API Secret <span class="text-slate-600">(optional)</span></label>
+            <input
+              id="live-api-secret"
+              type="password"
+              autocomplete="off"
+              [value]="liveApiSecret()"
+              (input)="liveApiSecret.set($any($event.target).value)"
+              placeholder="Leave blank if not required"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              [disabled]="!liveApiKey().trim() || saving() === 'live'"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              (click)="cancelForm('live')"
+              class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      } @else if (liveMode() === 'update') {
+        <!-- Update live credentials form -->
+        <form (submit)="$event.preventDefault(); updateCredentials('live')" class="space-y-4">
+          <p class="text-xs text-slate-500 mb-3">Enter a new API key. The validation status will be reset.</p>
+          <div>
+            <label for="live-api-key-update" class="block text-xs text-slate-400 mb-1.5">New API Key <span class="text-red-400" aria-label="required">*</span></label>
+            <input
+              id="live-api-key-update"
+              type="password"
+              autocomplete="off"
+              [value]="liveApiKey()"
+              (input)="liveApiKey.set($any($event.target).value)"
+              placeholder="Paste new Trading212 Live API key"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+              required
+            />
+          </div>
+          <div>
+            <label for="live-api-secret-update" class="block text-xs text-slate-400 mb-1.5">New API Secret <span class="text-slate-600">(optional)</span></label>
+            <input
+              id="live-api-secret-update"
+              type="password"
+              autocomplete="off"
+              [value]="liveApiSecret()"
+              (input)="liveApiSecret.set($any($event.target).value)"
+              placeholder="Leave blank if not required"
+              class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              [disabled]="!liveApiKey().trim() || saving() === 'live'"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Update
+            </button>
+            <button
+              type="button"
+              (click)="cancelForm('live')"
+              class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      } @else if (liveCredentials(); as cred) {
+        <!-- Live credentials view -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+          <div>
+            <p class="text-xs text-slate-500 mb-1">API Key</p>
+            <p class="text-sm text-slate-300 font-mono">{{ cred.maskedApiKey }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Validation</p>
+            <app-badge
+              [label]="validationLabel(cred.validationStatus)"
+              [variant]="validationBadgeVariant(cred.validationStatus)"
+            />
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Last validated</p>
+            <p class="text-sm text-slate-400 font-mono">{{ formatDateTime(cred.lastValidatedAt) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Updated</p>
+            <p class="text-sm text-slate-400 font-mono">{{ formatDateTime(cred.updatedAt) }}</p>
+          </div>
+        </div>
+
+        @if (cred.lastValidationError) {
+          <div class="mb-5 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p class="text-xs text-slate-500 mb-0.5">Last validation error</p>
+            <p class="text-red-300 text-xs font-mono">{{ cred.lastValidationError }}</p>
+          </div>
+        }
+
+        <!-- Delete confirmation inline -->
+        @if (confirmDelete() === 'live') {
+          <div class="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <p class="text-red-300 text-sm">Delete LIVE credentials? This cannot be undone.</p>
+            <div class="flex gap-2 shrink-0">
+              <button
+                type="button"
+                (click)="confirmDeleteCredentials()"
+                class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                (click)="cancelDelete()"
+                class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Activate confirmation inline -->
+        @if (confirmActivate() === 'live') {
+          <div class="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <p class="text-amber-300 text-sm">
+              Set LIVE as the active environment? All syncs and data views will use these credentials.
+            </p>
+            <div class="flex gap-2 shrink-0">
+              <button
+                type="button"
+                (click)="confirmActivateEnvironment()"
+                class="px-3 py-1.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                (click)="cancelActivate()"
+                class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Action buttons -->
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            (click)="validateCredentials('live')"
+            [disabled]="isEnvBusy('live')"
+            class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            @if (validating() === 'live') { Validating… } @else { Validate }
+          </button>
+          <button
+            type="button"
+            (click)="showUpdateForm('live')"
+            [disabled]="isEnvBusy('live')"
+            class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Update Key
+          </button>
+          <button
+            type="button"
+            (click)="requestActivate('live')"
+            [disabled]="isEnvBusy('live') || cred.isActive"
+            class="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            @if (activating() === 'live') { Activating… } @else { Set as Active }
+          </button>
+          <button
+            type="button"
+            (click)="requestDelete('live')"
+            [disabled]="isEnvBusy('live')"
+            class="px-3 py-1.5 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            @if (deleting() === 'live') { Deleting… } @else { Delete }
+          </button>
+        </div>
+      } @else {
+        <!-- No live credentials -->
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <app-badge label="Not configured" variant="demo" />
+            <p class="text-slate-500 text-sm">Add a Live API key for real-account access.</p>
+          </div>
+          <button
+            type="button"
+            (click)="showSaveForm('live')"
+            [disabled]="anyBusy()"
+            class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Add Live Key
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

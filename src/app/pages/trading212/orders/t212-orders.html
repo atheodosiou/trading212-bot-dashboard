@@ -1,0 +1,103 @@
+<div class="space-y-5">
+  <!-- Header -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold text-white">Orders</h1>
+      <p class="text-slate-500 text-sm mt-0.5">Historical order executions from Trading212</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <select
+        [value]="selectedYear()"
+        (change)="onYearChange($event)"
+        class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label="Select year"
+      >
+        @for (y of years; track y) {
+          <option [value]="y">{{ y }}</option>
+        }
+      </select>
+      <button
+        type="button"
+        (click)="load()"
+        class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+      >Refresh</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3" role="alert">
+      <svg class="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <p class="text-red-300 text-sm">{{ error() }}</p>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex items-center justify-center h-48">
+      <svg class="w-6 h-6 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+    </div>
+  }
+
+  @if (!loading()) {
+    @if (orders().length === 0) {
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-12 text-center">
+        <svg class="w-8 h-8 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <p class="text-slate-500 text-sm">No orders found for {{ selectedYear() }}. Run a sync to import data.</p>
+      </div>
+    } @else {
+      <div class="flex items-center justify-between mb-1">
+        <p class="text-slate-500 text-xs">Showing {{ orders().length }} of {{ total() }} orders</p>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[900px]">
+            <thead>
+              <tr class="border-b border-slate-700/60">
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Ticker</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Instrument</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Side</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">CCY</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Value</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">FX Rate</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Realised P&L</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-700/40">
+              @for (order of orders(); track order.id) {
+                <tr class="hover:bg-slate-700/20">
+                  <td class="px-4 py-3 text-slate-400 whitespace-nowrap font-mono text-xs">{{ formatDate(order.dateExecuted) }}</td>
+                  <td class="px-4 py-3 text-white font-medium">{{ order.ticker }}</td>
+                  <td class="px-4 py-3 text-slate-400 max-w-[180px] truncate" [title]="order.instrumentName ?? ''">{{ order.instrumentName ?? '—' }}</td>
+                  <td class="px-4 py-3">
+                    <app-badge [label]="order.side" [variant]="sideBadge(order.side)" />
+                  </td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(order.fillQuantity, 6) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(order.fillPrice, 4) }}</td>
+                  <td class="px-4 py-3 text-slate-400">{{ order.instrumentCurrency }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(order.walletNetValue, 2) }}</td>
+                  <td class="px-4 py-3 text-slate-400 text-right font-mono">{{ formatNum(order.walletFxRate, 4) }}</td>
+                  <td class="px-4 py-3 text-right font-mono font-semibold"
+                    [class]="(order.walletRealisedPnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'">
+                    {{ formatNum(order.walletRealisedPnl, 2) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+</div>

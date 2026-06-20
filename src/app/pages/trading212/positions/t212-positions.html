@@ -1,0 +1,117 @@
+<div class="space-y-5">
+  <!-- Header -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold text-white">Open Positions</h1>
+      <p class="text-slate-500 text-sm mt-0.5">Current holdings computed via FIFO lot matching</p>
+    </div>
+    <button type="button" (click)="load()"
+      class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500">
+      Refresh
+    </button>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3" role="alert">
+      <svg class="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <p class="text-red-300 text-sm">{{ error() }}</p>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex items-center justify-center h-48">
+      <svg class="w-6 h-6 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+    </div>
+  }
+
+  @if (!loading()) {
+    @if (positions().length === 0) {
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-12 text-center">
+        <svg class="w-8 h-8 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p class="text-slate-500 text-sm">No open positions found. Run a sync to compute current holdings.</p>
+      </div>
+    } @else {
+      <p class="text-slate-500 text-xs mb-1">{{ positions().length }} open position(s) · click a row to expand lots</p>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-700/60">
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-8"></th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Ticker</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Quantity</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Cost</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Invested</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Lots</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (pos of positions(); track pos.ticker) {
+                <!-- Position row -->
+                <tr
+                  class="border-b border-slate-700/40 hover:bg-slate-700/20 cursor-pointer"
+                  (click)="toggleExpanded(pos.ticker)"
+                  [attr.aria-expanded]="isExpanded(pos.ticker)"
+                >
+                  <td class="px-4 py-3">
+                    <svg class="w-4 h-4 text-slate-500 transition-transform"
+                      [class.rotate-90]="isExpanded(pos.ticker)"
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </td>
+                  <td class="px-4 py-3 text-white font-semibold">{{ pos.ticker }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(pos.quantity, 6) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(pos.averageCost, 4) }}</td>
+                  <td class="px-4 py-3 text-slate-200 text-right font-mono font-semibold">{{ formatNum(pos.totalInvested, 2) }}</td>
+                  <td class="px-4 py-3 text-slate-500 text-right text-xs">{{ pos.lots.length }}</td>
+                </tr>
+
+                <!-- Lots expansion -->
+                @if (isExpanded(pos.ticker) && pos.lots.length > 0) {
+                  <tr class="bg-slate-900/50">
+                    <td colspan="6" class="px-0 py-0">
+                      <div class="px-12 py-3">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Lots for {{ pos.ticker }}</p>
+                        <table class="w-full text-xs">
+                          <thead>
+                            <tr class="text-slate-600 uppercase">
+                              <th class="pb-1 text-left pr-6">Date</th>
+                              <th class="pb-1 text-right pr-6">Qty Remaining</th>
+                              <th class="pb-1 text-right pr-6">Buy Price</th>
+                              <th class="pb-1 text-right">Total Cost</th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-800">
+                            @for (lot of pos.lots; track $index) {
+                              <tr>
+                                <td class="py-1.5 pr-6 text-slate-400 font-mono">{{ formatDate(lot.date) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-300 text-right font-mono">{{ formatNum(lot.quantity, 6) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-300 text-right font-mono">{{ formatNum(lot.price, 4) }}</td>
+                                <td class="py-1.5 text-slate-200 text-right font-mono">{{ formatNum(lot.totalCost, 2) }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+</div>
