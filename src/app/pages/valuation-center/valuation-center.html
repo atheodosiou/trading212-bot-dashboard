@@ -1,0 +1,240 @@
+<div class="space-y-5">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold text-white">Valuation Center</h1>
+      <p class="text-slate-500 text-sm mt-0.5">Search for a stock and generate one cached analysis report at a time</p>
+    </div>
+    @if (report()) {
+      <button
+        type="button"
+        (click)="refreshReport()"
+        [disabled]="reportLoading()"
+        class="px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-200 text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+      >
+        Refresh
+      </button>
+    }
+  </div>
+
+  <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+    <label for="analysis-profile" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+      Analysis Profile
+    </label>
+    <select
+      id="analysis-profile"
+      [value]="selectedProfileId()"
+      (change)="onProfileChange($event)"
+      class="mb-4 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:max-w-sm"
+    >
+      <option value="">Backend default</option>
+      @for (profile of profiles(); track profileId(profile) || profile.name) {
+        <option [value]="profileId(profile)">{{ profile.name }}</option>
+      }
+    </select>
+
+    @if (profilesLoading()) {
+      <p class="text-blue-300 text-xs mb-4">Loading profiles...</p>
+    }
+
+    @if (profilesError()) {
+      <p class="text-red-300 text-sm mb-4" role="alert">{{ profilesError() }}</p>
+    }
+
+    <label for="instrument-search" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+      Stock Search
+    </label>
+    <div class="flex flex-col gap-3 lg:flex-row">
+      <div class="relative flex-1">
+        <input
+          id="instrument-search"
+          type="search"
+          [value]="query()"
+          (input)="onSearchInput($event)"
+          class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Search by company or ticker"
+          role="combobox"
+          autocomplete="off"
+          aria-autocomplete="list"
+          aria-controls="instrument-search-results"
+          [attr.aria-expanded]="showResults()"
+        />
+
+        @if (showResults()) {
+          <div
+            id="instrument-search-results"
+            class="absolute z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 shadow-xl"
+            role="listbox"
+          >
+            @for (result of searchResults(); track result.internalTicker || result.ticker || result.displayTicker || $index) {
+              <button
+                type="button"
+                (click)="selectInstrument(result)"
+                class="block w-full px-4 py-3 text-left hover:bg-slate-800 focus:bg-slate-800 focus:outline-none"
+                role="option"
+              >
+                <span class="block text-sm font-semibold text-white">{{ resultSymbol(result) }}</span>
+                <span class="block text-sm text-slate-300">{{ resultName(result) }}</span>
+                <span class="block text-xs text-slate-500 mt-0.5">{{ resultMeta(result) }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <button
+        type="button"
+        (click)="generateReport()"
+        [disabled]="!canGenerate()"
+        class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        @if (reportLoading()) {
+          <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        }
+        Generate Report
+      </button>
+    </div>
+
+    <p class="text-slate-500 text-xs mt-2">Enter at least 2 characters. Reports are generated for the selected display ticker.</p>
+
+    @if (searchLoading()) {
+      <p class="text-blue-300 text-xs mt-3">Searching instruments...</p>
+    }
+
+    @if (searchError()) {
+      <p class="text-red-300 text-sm mt-3" role="alert">{{ searchError() }}</p>
+    }
+
+    @if (selectedInstrument(); as stock) {
+      <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
+        <span class="text-slate-500">Selected</span>
+        <span class="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 font-semibold text-blue-300">{{ stock.displayTicker }}</span>
+        <span class="text-slate-300">{{ stock.name }}</span>
+        @if (selectedProfile(); as profile) {
+          <span class="text-slate-500">Profile: {{ profile.name }}</span>
+        }
+      </div>
+    }
+  </div>
+
+  @if (reportError()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3" role="alert">
+      <svg class="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <p class="text-red-300 text-sm">{{ reportError() }}</p>
+    </div>
+  }
+
+  @if (reportLoading()) {
+    <div class="grid gap-4 lg:grid-cols-3" aria-label="Loading report">
+      <div class="h-36 animate-pulse rounded-xl border border-slate-700/60 bg-slate-800/60"></div>
+      <div class="h-36 animate-pulse rounded-xl border border-slate-700/60 bg-slate-800/60 lg:col-span-2"></div>
+    </div>
+  }
+
+  @if (!reportLoading() && report() && selectedInstrument(); as stock) {
+    <div class="space-y-4">
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-white">{{ companyName() }}</h2>
+            <div class="mt-2 flex flex-wrap gap-2 text-xs">
+              <span class="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-slate-300">{{ stock.displayTicker }}</span>
+              <span class="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-slate-300">ISIN {{ stock.isin }}</span>
+              <span class="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-slate-300">{{ stock.currency }}</span>
+            </div>
+            @if (activeProfile(); as profile) {
+              <div class="mt-4 space-y-2">
+                <p class="text-sm text-slate-300">Profile: <span class="font-semibold text-white">{{ profile.name }}</span></p>
+                <div class="flex flex-wrap gap-2 text-xs">
+                  @for (weight of profileWeightLines(); track weight.label) {
+                    <span class="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-slate-400">
+                      {{ weight.label }}: {{ formatWeight(weight.value) }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+            @if (report()?.generatedAt || report()?.expiresAt || activeProfile()) {
+              <div class="mt-4 flex flex-wrap gap-3 text-xs text-slate-500">
+                @if (report()?.generatedAt; as generatedAt) {
+                  <span>Generated: {{ formatDate(generatedAt) }}</span>
+                }
+                @if (report()?.expiresAt; as expiresAt) {
+                  <span>Expires: {{ formatDate(expiresAt) }}</span>
+                }
+                @if (activeProfile(); as profile) {
+                  <span>Profile: {{ profile.name }}</span>
+                }
+              </div>
+            }
+          </div>
+          <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border" [class]="statusClasses(status())">
+            {{ status() }}
+          </span>
+        </div>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-3">
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Overall Score</p>
+          <div class="mt-4 flex flex-col items-center justify-center">
+            <app-score-gauge [score]="overallScore() ?? 0" [size]="220" [showLabel]="true">
+              {{ status() }}
+            </app-score-gauge>
+            <span class="mt-4 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border" [class]="statusClasses(status())">
+              {{ status() }}
+            </span>
+            @if (activeProfile(); as profile) {
+              <p class="mt-3 text-sm text-slate-500">Profile: <span class="text-slate-300">{{ profile.name }}</span></p>
+            }
+          </div>
+        </div>
+
+        <div class="grid gap-4 lg:col-span-2 sm:grid-cols-2">
+          @for (card of categoryCards(); track card.label) {
+            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+              <div class="flex items-start justify-between gap-3">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ card.label }}</p>
+                <p
+                  class="text-xl font-semibold font-mono"
+                  [class.text-emerald-300]="isScoreSuccess(card.score)"
+                  [class.text-yellow-300]="isScoreWarning(card.score)"
+                  [class.text-orange-300]="isScoreOrange(card.score)"
+                  [class.text-red-300]="isScoreDanger(card.score)"
+                  [class.text-white]="card.score === null"
+                >
+                  {{ formatScore(card.score) }}
+                </p>
+              </div>
+              <div class="mt-3">
+                <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Metrics Used</p>
+                @if (card.metrics.length > 0) {
+                  <ul class="mt-2 space-y-1">
+                    @for (metric of card.metrics; track metric) {
+                      <li class="text-xs text-slate-300">{{ metricLabel(metric) }}</li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="mt-2 text-xs text-slate-500">No metrics listed</p>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (!reportLoading() && !report() && !reportError()) {
+    <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-12 text-center">
+      <svg class="w-8 h-8 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <p class="text-slate-500 text-sm">Search for a stock, select it, then generate a report.</p>
+    </div>
+  }
+</div>

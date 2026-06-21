@@ -41,6 +41,11 @@ export const routes: Routes = [
           import('./pages/trading212/positions/t212-positions').then(m => m.T212PositionsPage),
       },
       {
+        path: 'trading212/valuation-center',
+        loadComponent: () =>
+          import('./pages/valuation-center/valuation-center').then(m => m.ValuationCenterPage),
+      },
+      {
         path: 'trading212/tax-summary',
         loadComponent: () =>
           import('./pages/trading212/tax-summary/t212-tax-summary').then(
