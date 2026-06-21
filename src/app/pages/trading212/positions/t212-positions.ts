@@ -7,7 +7,8 @@ import {
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Trading212ApiService } from '../../../core/api/trading212-api.service';
-import type { OpenPosition } from '../../../core/models/trading212.models';
+import { getDisplayTicker, getInternalTicker } from '../../../core/models/ticker-display';
+import type { OpenPosition, PositionLot } from '../../../core/models/trading212.models';
 
 @Component({
   selector: 'app-t212-positions',
@@ -42,7 +43,8 @@ export class T212PositionsPage implements OnInit {
     });
   }
 
-  toggleExpanded(ticker: string): void {
+  toggleExpanded(position: OpenPosition): void {
+    const ticker = this.positionKey(position);
     const next = new Set(this.expanded());
     if (next.has(ticker)) {
       next.delete(ticker);
@@ -52,13 +54,49 @@ export class T212PositionsPage implements OnInit {
     this.expanded.set(next);
   }
 
-  isExpanded(ticker: string): boolean {
-    return this.expanded().has(ticker);
+  isExpanded(position: OpenPosition): boolean {
+    return this.expanded().has(this.positionKey(position));
+  }
+
+  displayTicker(position: OpenPosition): string {
+    return getDisplayTicker(position);
+  }
+
+  tickerTitle(position: OpenPosition): string {
+    const internalTicker = getInternalTicker(position);
+    const parts = [
+      position.instrumentName,
+      position.instrumentIsin,
+      internalTicker ? `Internal ticker: ${internalTicker}` : null,
+    ];
+    return parts.filter((part): part is string => Boolean(part)).join(' | ');
+  }
+
+  internalTicker(position: OpenPosition): string | null {
+    return getInternalTicker(position);
+  }
+
+  lotTotalCostAccount(lot: PositionLot): number {
+    return lot.qty * lot.costPerShareAccount;
   }
 
   formatNum(val: number | null | undefined, digits = 2): string {
     if (val == null) return '—';
     return val.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  formatQuantity(val: number | null | undefined): string {
+    if (val == null) return 'â€”';
+    return val.toLocaleString('en-GB', { maximumFractionDigits: 4 });
+  }
+
+  formatPrice(val: number | null | undefined): string {
+    return this.formatNum(val, 2);
+  }
+
+  formatCurrency(val: number | null | undefined, currency: string): string {
+    if (val == null) return 'â€”';
+    return val.toLocaleString('en-GB', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   formatDate(iso: string): string {
@@ -73,5 +111,9 @@ export class T212PositionsPage implements OnInit {
     const msg = body.message;
     if (Array.isArray(msg)) return msg.join(' ');
     return msg ?? fallback;
+  }
+
+  private positionKey(position: OpenPosition): string {
+    return position.internalTicker?.trim() || position.ticker?.trim() || position.displayTicker?.trim() || '';
   }
 }

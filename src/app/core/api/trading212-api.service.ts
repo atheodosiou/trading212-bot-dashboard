@@ -19,6 +19,7 @@ import type {
   T212CashTransaction,
   T212Dividend,
   T212Order,
+  TaxCenterResponse,
   UpdateCredentialsPayload,
   ValidationResult,
   YearlySummary,
@@ -113,6 +114,10 @@ export class Trading212ApiService {
 
   getTaxSummary(year: number): Observable<FifoTaxSummary> {
     return this.http.get<FifoTaxSummary>(`${this.base}/tax-summary/${year}`);
+  }
+
+  getTaxCenter(): Observable<TaxCenterResponse> {
+    return this.http.get<TaxCenterResponse>(`${this.base}/tax-center`);
   }
 
   // ─── Yearly Summary ───────────────────────────────────────────────────────────

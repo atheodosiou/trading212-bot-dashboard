@@ -51,25 +51,15 @@
         }
       </div>
 
-      <button
-        type="button"
-        (click)="exportReport()"
-        [disabled]="exporting() || !summary()"
-        class="flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+      <a
+        routerLink="/trading212/tax-center"
+        class="flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
       >
-        @if (exporting()) {
-          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-          Exporting…
-        } @else {
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          Export Excel
-        }
-      </button>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-6 4h6m-6 4h3m-5 6h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        Open Tax Center
+      </a>
     </div>
   </div>
 
@@ -86,9 +76,9 @@
   <!-- Sync result banner -->
   @if (syncResult(); as result) {
     <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm">
-      Sync complete — {{ result.ordersAdded }} orders, {{ result.dividendsAdded }} dividends, {{ result.cashTransactionsAdded }} cash transactions added.
-      @if (result.errors.length) {
-        <span class="text-yellow-400 ml-2">{{ result.errors.length }} warning(s).</span>
+      {{ syncResultMessage(result) }}
+      @if (skippedDuplicatesMessage(result); as skippedMessage) {
+        <span class="text-slate-300 ml-2">{{ skippedMessage }}</span>
       }
     </div>
   }
@@ -205,18 +195,21 @@
             <p class="text-sm text-slate-200 font-mono">{{ formatDuration(s.lastDurationMs) }}</p>
           </div>
           <div>
-            <p class="text-xs text-slate-500 mb-0.5">Orders synced</p>
+            <p class="text-xs text-slate-500 mb-0.5">New Orders (Last Sync)</p>
             <p class="text-sm text-slate-200 font-semibold">{{ s.totals.ordersSynced }}</p>
           </div>
           <div>
-            <p class="text-xs text-slate-500 mb-0.5">Dividends synced</p>
+            <p class="text-xs text-slate-500 mb-0.5">New Dividends (Last Sync)</p>
             <p class="text-sm text-slate-200 font-semibold">{{ s.totals.dividendsSynced }}</p>
           </div>
           <div>
-            <p class="text-xs text-slate-500 mb-0.5">Cash transactions synced</p>
+            <p class="text-xs text-slate-500 mb-0.5">New Cash Movements (Last Sync)</p>
             <p class="text-sm text-slate-200 font-semibold">{{ s.totals.cashTransactionsSynced }}</p>
           </div>
         </div>
+        <p class="text-xs text-slate-500 mt-4">
+          Counts show newly inserted records from the latest sync. Existing duplicate records are skipped.
+        </p>
       } @else {
         <!-- Never synced -->
         <div class="flex items-center gap-3">
@@ -227,27 +220,27 @@
     </div>
 
     <!-- Financial summary for selected year -->
-    @if (summary(); as s) {
+    @if (selectedYearSummary(); as s) {
       <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
         <app-card title="Realized P&L">
-          <p class="text-2xl font-bold" [class]="s.realizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'">
-            {{ formatCurrency(s.realizedPnl) }}
+          <p class="text-2xl font-bold" [class]="s.realizedPnlEur >= 0 ? 'text-emerald-400' : 'text-red-400'">
+            {{ formatCurrency(s.realizedPnlEur) }}
           </p>
           <p class="text-slate-500 text-xs mt-1">FIFO basis · {{ s.year }}</p>
         </app-card>
 
         <app-card title="Dividend Income">
-          <p class="text-2xl font-bold text-blue-400">{{ formatCurrency(s.dividendIncome) }}</p>
+          <p class="text-2xl font-bold text-blue-400">{{ formatCurrency(s.dividendsEur) }}</p>
           <p class="text-slate-500 text-xs mt-1">Gross dividends received · {{ s.year }}</p>
         </app-card>
 
         <app-card title="Cash Deposits">
-          <p class="text-2xl font-bold text-white">{{ formatCurrency(s.cashDeposits) }}</p>
+          <p class="text-2xl font-bold text-white">{{ formatCurrency(s.depositsEur) }}</p>
           <p class="text-slate-500 text-xs mt-1">Total deposited · {{ s.year }}</p>
         </app-card>
 
         <app-card title="Cash Withdrawals">
-          <p class="text-2xl font-bold text-white">{{ formatCurrency(s.cashWithdrawals) }}</p>
+          <p class="text-2xl font-bold text-white">{{ formatCurrency(s.withdrawalsEur) }}</p>
           <p class="text-slate-500 text-xs mt-1">Total withdrawn · {{ s.year }}</p>
         </app-card>
       </div>
@@ -311,7 +304,7 @@
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                   <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Orders</th>
                   <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Dividends</th>
-                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cash Txns</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cash Movements</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Error</th>
                 </tr>
               </thead>

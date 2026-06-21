@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Trading212ApiService } from '../../../core/api/trading212-api.service';
+import { getDisplayTicker, getInternalTicker } from '../../../core/models/ticker-display';
 import { BadgeComponent } from '../../../shared/ui/badge/badge';
 import type { T212Order } from '../../../core/models/trading212.models';
 import type { BadgeVariant } from '../../../shared/ui/badge/badge';
@@ -55,6 +56,40 @@ export class T212OrdersPage implements OnInit {
 
   sideBadge(side: string): BadgeVariant {
     return side === 'BUY' ? 'running' : 'error';
+  }
+
+  displayTicker(order: T212Order): string {
+    return getDisplayTicker(order);
+  }
+
+  tickerTitle(order: T212Order): string {
+    const internalTicker = getInternalTicker(order);
+    const parts = [
+      order.instrumentName,
+      order.instrumentIsin,
+      internalTicker ? `Internal ticker: ${internalTicker}` : null,
+    ];
+    return parts.filter((part): part is string => Boolean(part)).join(' | ');
+  }
+
+  formatQuantity(val: number | null | undefined): string {
+    if (val == null) return 'â€”';
+    return val.toLocaleString('en-GB', { maximumFractionDigits: 4 });
+  }
+
+  formatPrice(val: number | null | undefined): string {
+    return this.formatNum(val, 2);
+  }
+
+  formatCurrency(val: number | null | undefined, currency: string): string {
+    if (val == null) return 'â€”';
+    return val.toLocaleString('en-GB', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  formatSignedCurrency(val: number | null | undefined, currency: string): string {
+    if (val == null) return 'â€”';
+    const sign = val > 0 ? '+' : '';
+    return `${sign}${this.formatCurrency(val, currency)}`;
   }
 
   formatDate(iso: string): string {

@@ -46,20 +46,20 @@
   @if (!loading() && summary(); as s) {
     <!-- Top metrics -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <app-card title="Realized P&L">
-        <p class="text-2xl font-bold" [class]="s.realizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'">
-          {{ formatCurrency(s.realizedPnl) }}
+      <app-card title="Realized P/L EUR">
+        <p class="text-2xl font-bold" [class]="s.accountRealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'">
+          {{ formatCurrency(s.accountRealizedPnl, s.accountCurrency) }}
         </p>
         <p class="text-slate-500 text-xs mt-1">FIFO method · {{ s.year }}</p>
       </app-card>
 
-      <app-card title="Total Cost Basis">
-        <p class="text-2xl font-bold text-white">{{ formatCurrency(s.totalCostBasis) }}</p>
-        <p class="text-slate-500 text-xs mt-1">Sum of all buy costs</p>
+      <app-card title="Cost Basis of Sold Shares EUR">
+        <p class="text-2xl font-bold text-white">{{ formatCurrency(s.accountTotalCostBasis, s.accountCurrency) }}</p>
+        <p class="text-slate-500 text-xs mt-1">FIFO cost basis for shares sold</p>
       </app-card>
 
-      <app-card title="Total Proceeds">
-        <p class="text-2xl font-bold text-white">{{ formatCurrency(s.totalProceeds) }}</p>
+      <app-card title="Sell Proceeds EUR">
+        <p class="text-2xl font-bold text-white">{{ formatCurrency(s.accountTotalProceeds, s.accountCurrency) }}</p>
         <p class="text-slate-500 text-xs mt-1">Sum of all sell proceeds</p>
       </app-card>
     </div>
@@ -71,7 +71,7 @@
       </div>
     } @else {
       <div>
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Per-Ticker Breakdown</p>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Realized P/L by Ticker</p>
         <p class="text-slate-600 text-xs mb-3">Click a row to expand matched lots.</p>
 
         <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden">
@@ -81,9 +81,9 @@
                 <tr class="border-b border-slate-700/60">
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-8"></th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Ticker</th>
-                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Cost Basis</th>
-                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Proceeds</th>
-                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Realized P&L</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" title="FIFO cost basis for shares sold." aria-label="Cost Basis of Sold Shares EUR. FIFO cost basis for shares sold.">Cost Basis of Sold Shares EUR</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" title="Gross proceeds from sell executions." aria-label="Sell Proceeds EUR. Gross proceeds from sell executions.">Sell Proceeds EUR</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Realized P/L EUR</th>
                   <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Trades</th>
                 </tr>
               </thead>
@@ -91,59 +91,76 @@
                 @for (row of s.byTicker; track row.ticker) {
                   <tr
                     class="border-b border-slate-700/40 hover:bg-slate-700/20 cursor-pointer"
-                    (click)="toggleTicker(row.ticker)"
-                    [attr.aria-expanded]="isExpanded(row.ticker)"
+                    (click)="toggleTicker(row)"
+                    [attr.aria-expanded]="isExpanded(row)"
                   >
                     <td class="px-4 py-3">
                       <svg class="w-4 h-4 text-slate-500 transition-transform"
-                        [class.rotate-90]="isExpanded(row.ticker)"
+                        [class.rotate-90]="isExpanded(row)"
                         fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                       </svg>
                     </td>
-                    <td class="px-4 py-3 text-white font-semibold">{{ row.ticker }}</td>
-                    <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(row.costBasis, 2) }}</td>
-                    <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(row.proceeds, 2) }}</td>
+                    <td class="px-4 py-3 text-white font-semibold" [title]="tickerTitle(row)">{{ displayTicker(row) }}</td>
+                    <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatCurrency(row.accountCostBasis, s.accountCurrency) }}</td>
+                    <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatCurrency(row.accountProceeds, s.accountCurrency) }}</td>
                     <td class="px-4 py-3 text-right font-mono font-bold"
-                      [class]="row.realizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'">
-                      {{ formatNum(row.realizedPnl, 2) }}
+                      [class]="row.accountRealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'">
+                      {{ formatSigned(row.accountRealizedPnl) }}
                     </td>
-                    <td class="px-4 py-3 text-slate-500 text-right text-xs">{{ row.matchedLots.length }}</td>
+                    <td class="px-4 py-3 text-slate-500 text-right text-xs">{{ row.tradeCount }}</td>
                   </tr>
 
                   <!-- Matched lots -->
-                  @if (isExpanded(row.ticker) && row.matchedLots.length > 0) {
+                  @if (isExpanded(row) && matchedLots(row).length > 0) {
                     <tr class="bg-slate-900/50">
                       <td colspan="6" class="px-0 py-0">
                         <div class="px-12 py-3">
-                          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Matched Lots — {{ row.ticker }}</p>
-                          <table class="w-full text-xs">
-                            <thead>
-                              <tr class="text-slate-600 uppercase">
-                                <th class="pb-1 text-left pr-4">Buy Date</th>
-                                <th class="pb-1 text-left pr-4">Sell Date</th>
-                                <th class="pb-1 text-right pr-4">Qty</th>
-                                <th class="pb-1 text-right pr-4">Buy Price</th>
-                                <th class="pb-1 text-right pr-4">Sell Price</th>
-                                <th class="pb-1 text-right">Gain</th>
-                              </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800">
-                              @for (lot of row.matchedLots; track $index) {
-                                <tr>
-                                  <td class="py-1.5 pr-4 text-slate-400 font-mono">{{ formatDate(lot.buyDate) }}</td>
-                                  <td class="py-1.5 pr-4 text-slate-400 font-mono">{{ formatDate(lot.sellDate) }}</td>
-                                  <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatNum(lot.quantity, 6) }}</td>
-                                  <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatNum(lot.buyPrice, 4) }}</td>
-                                  <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatNum(lot.sellPrice, 4) }}</td>
-                                  <td class="py-1.5 text-right font-mono font-semibold"
-                                    [class]="lot.gain >= 0 ? 'text-emerald-400' : 'text-red-400'">
-                                    {{ formatNum(lot.gain, 2) }}
-                                  </td>
+                          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            Matched Lots — {{ displayTicker(row) }}
+                            @if (internalTicker(row); as internal) {
+                              <span class="normal-case tracking-normal text-slate-600">Internal ticker: {{ internal }}</span>
+                            }
+                          </p>
+                          <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                              <thead>
+                                <tr class="text-slate-600 uppercase">
+                                  <th class="pb-1 text-left pr-4">Buy Date</th>
+                                  <th class="pb-1 text-left pr-4">Sell Date</th>
+                                  <th class="pb-1 text-right pr-4">Qty</th>
+                                  <th class="pb-1 text-right pr-4">Cost/Share EUR</th>
+                                  <th class="pb-1 text-right pr-4">Proceeds/Share EUR</th>
+                                  <th class="pb-1 text-right pr-4">Cost Basis EUR</th>
+                                  <th class="pb-1 text-right pr-4">Sell Proceeds EUR</th>
+                                  <th class="pb-1 text-right pr-4">Realized P/L EUR</th>
+                                  <th class="pb-1 text-right pr-4">Native Buy</th>
+                                  <th class="pb-1 text-right pr-4">Native Sell</th>
+                                  <th class="pb-1 text-left">Currency</th>
                                 </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody class="divide-y divide-slate-800">
+                                @for (lot of matchedLots(row); track $index) {
+                                  <tr [title]="lotTitle(lot)">
+                                    <td class="py-1.5 pr-4 text-slate-400 font-mono">{{ formatDate(lot.buyDate) }}</td>
+                                    <td class="py-1.5 pr-4 text-slate-400 font-mono">{{ formatDate(lot.sellDate) }}</td>
+                                    <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatQuantity(lot.qty) }}</td>
+                                    <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatPrice(lot.accountCostPerShare) }}</td>
+                                    <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatPrice(lot.accountProceedsPerShare) }}</td>
+                                    <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatCurrency(lot.accountCostBasis, lot.accountCurrency) }}</td>
+                                    <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatCurrency(lot.accountProceeds, lot.accountCurrency) }}</td>
+                                    <td class="py-1.5 pr-4 text-right font-mono font-semibold"
+                                      [class]="lot.accountRealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'">
+                                      {{ formatSigned(lot.accountRealizedPnl) }}
+                                    </td>
+                                    <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatPrice(lot.buyPriceNative) }}</td>
+                                    <td class="py-1.5 pr-4 text-slate-300 text-right font-mono">{{ formatPrice(lot.sellPriceNative) }}</td>
+                                    <td class="py-1.5 text-slate-400">{{ lot.instrumentCurrency }} / {{ lot.accountCurrency }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </td>
                     </tr>

@@ -38,12 +38,19 @@ export interface SyncLogEntry {
   errorMessage: string | null;
 }
 
+export interface SyncRecordResult {
+  synced: number;
+  skipped: number;
+}
+
 export interface SyncResult {
-  ordersAdded: number;
-  dividendsAdded: number;
-  cashTransactionsAdded: number;
-  errors: string[];
-  syncedAt?: string;
+  status: 'success';
+  result: {
+    orders: SyncRecordResult;
+    dividends: SyncRecordResult;
+    cashTransactions: SyncRecordResult;
+    completedAt: string;
+  };
 }
 
 // ─── Query Params ─────────────────────────────────────────────────────────────
@@ -69,7 +76,10 @@ export interface T212Order {
   id: string;
   dateExecuted: string;
   ticker: string;
+  displayTicker?: string;
+  internalTicker?: string;
   instrumentName?: string;
+  instrumentIsin?: string;
   side: 'BUY' | 'SELL';
   fillQuantity: number;
   fillPrice: number;
@@ -86,6 +96,11 @@ export interface T212Dividend {
   id: string;
   paidOn: string;
   ticker: string;
+  displayTicker?: string;
+  internalTicker?: string;
+  instrumentName?: string;
+  instrumentIsin?: string;
+  instrumentCurrency?: string;
   dividendType: string;
   quantity: number;
   grossAmountPerShare: number;
@@ -110,49 +125,106 @@ export interface T212CashTransaction {
 
 export interface PositionLot {
   orderId?: string;
-  date: string;
-  quantity: number;
-  price: number;
-  totalCost: number;
+  qty: number;
+  costPerShareNative: number;
+  costPerShareAccount: number;
+  instrumentCurrency: string;
+  accountCurrency: string;
+  acquiredOn: string;
 }
 
 export interface OpenPosition {
-  ticker: string;
+  ticker?: string;
+  displayTicker?: string;
+  internalTicker?: string;
+  instrumentName?: string;
+  instrumentIsin?: string;
+  instrumentCurrency: string;
+  accountCurrency: string;
   quantity: number;
-  averageCost: number;
-  totalInvested: number;
+  averageCostNative: number;
+  totalInvestedNative: number;
+  averageCostAccount: number;
+  totalInvestedAccount: number;
   lots: PositionLot[];
 }
 
 // ─── Tax Calculation ──────────────────────────────────────────────────────────
 
 export interface MatchedLot {
+  ticker?: string;
+  displayTicker?: string;
+  internalTicker?: string;
   buyOrderId?: string;
   sellOrderId?: string;
   buyDate: string;
   sellDate: string;
-  quantity: number;
-  buyPrice: number;
-  sellPrice: number;
-  gain: number;
-  currency?: string;
+  qty: number;
+  accountCostPerShare: number;
+  accountProceedsPerShare: number;
+  accountCostBasis: number;
+  accountProceeds: number;
+  accountRealizedPnl: number;
+  buyPriceNative: number;
+  sellPriceNative: number;
+  instrumentCurrency: string;
+  accountCurrency: string;
 }
 
 export interface TickerTaxSummary {
   ticker: string;
-  realizedPnl: number;
-  costBasis: number;
-  proceeds: number;
-  matchedLots: MatchedLot[];
+  displayTicker?: string;
+  internalTicker?: string;
+  instrumentName?: string;
+  instrumentIsin?: string;
+  instrumentCurrency?: string;
+  accountRealizedPnl: number;
+  accountCostBasis: number;
+  accountProceeds: number;
+  tradeCount: number;
 }
 
 export interface FifoTaxSummary {
   year: number;
   method: 'FIFO';
-  realizedPnl: number;
-  totalCostBasis: number;
-  totalProceeds: number;
+  accountRealizedPnl: number;
+  accountTotalCostBasis: number;
+  accountTotalProceeds: number;
+  accountCurrency: string;
   byTicker: TickerTaxSummary[];
+  matchedLots: MatchedLot[];
+}
+
+// Tax Center
+
+export type TaxCenterWarningSeverity = 'info' | 'warning' | 'error' | 'critical';
+
+export interface TaxCenterWarning {
+  severity: TaxCenterWarningSeverity | string;
+  code: string;
+  message: string;
+  count: number;
+}
+
+export interface TaxCenterYear {
+  year: number;
+  realizedPnlEur: number;
+  costBasisEur: number;
+  proceedsEur: number;
+  dividendsEur: number;
+  depositsEur: number;
+  withdrawalsEur: number;
+  feesEur: number;
+  ordersCount: number;
+  reportsCount: number;
+  latestReportDate: string | null;
+  hasWarnings: boolean;
+}
+
+export interface TaxCenterResponse {
+  environment: CredentialEnvironment | string;
+  years: TaxCenterYear[];
+  warnings: TaxCenterWarning[];
 }
 
 // ─── Yearly Summary ───────────────────────────────────────────────────────────

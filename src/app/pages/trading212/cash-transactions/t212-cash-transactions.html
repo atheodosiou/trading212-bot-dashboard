@@ -2,8 +2,8 @@
   <!-- Header -->
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div>
-      <h1 class="text-xl font-semibold text-white">Cash Transactions</h1>
-      <p class="text-slate-500 text-sm mt-0.5">Deposits, withdrawals, and cash movements</p>
+      <h1 class="text-xl font-semibold text-white">Account Cash Movements</h1>
+      <p class="text-slate-500 text-sm mt-0.5">Deposits, withdrawals, fees, and account cash movements</p>
     </div>
     <div class="flex items-center gap-3">
       <select
@@ -49,7 +49,7 @@
         <svg class="w-8 h-8 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
         </svg>
-        <p class="text-slate-500 text-sm">No cash transactions found for {{ selectedYear() }}. Run a sync to import data.</p>
+        <p class="text-slate-500 text-sm">No account cash movements found for {{ selectedYear() }}. Run a sync to import data.</p>
       </div>
     } @else {
       <p class="text-slate-500 text-xs mb-1">Showing {{ transactions().length }} of {{ total() }} transactions</p>
@@ -73,7 +73,7 @@
                   <td class="px-4 py-3 text-slate-300">{{ tx.transactionType }}</td>
                   <td class="px-4 py-3 text-right font-mono font-semibold"
                     [class]="tx.amount >= 0 ? 'text-emerald-400' : 'text-red-400'">
-                    {{ formatNum(tx.amount, 2) }}
+                    {{ formatCurrency(tx.amount, tx.currency) }}
                   </td>
                   <td class="px-4 py-3 text-slate-400">{{ tx.currency }}</td>
                   <td class="px-4 py-3 text-slate-500 text-xs font-mono truncate max-w-[200px]">{{ tx.reference ?? tx.externalId ?? '—' }}</td>

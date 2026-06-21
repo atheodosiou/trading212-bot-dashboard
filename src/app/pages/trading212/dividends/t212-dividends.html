@@ -72,12 +72,12 @@
               @for (d of dividends(); track d.id) {
                 <tr class="hover:bg-slate-700/20">
                   <td class="px-4 py-3 text-slate-400 font-mono text-xs whitespace-nowrap">{{ formatDate(d.paidOn) }}</td>
-                  <td class="px-4 py-3 text-white font-medium">{{ d.ticker }}</td>
+                  <td class="px-4 py-3 text-white font-medium" [title]="tickerTitle(d)">{{ displayTicker(d) }}</td>
                   <td class="px-4 py-3 text-slate-400 text-xs">{{ d.dividendType }}</td>
-                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(d.quantity, 6) }}</td>
-                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(d.grossAmountPerShare, 4) }}</td>
-                  <td class="px-4 py-3 text-emerald-400 text-right font-mono font-semibold">{{ formatNum(d.amount, 2) }}</td>
-                  <td class="px-4 py-3 text-emerald-300 text-right font-mono">{{ formatNum(d.amountInEuro, 2) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatQuantity(d.quantity) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatPrice(d.grossAmountPerShare) }}</td>
+                  <td class="px-4 py-3 text-emerald-400 text-right font-mono font-semibold">{{ formatCurrency(d.amount, d.instrumentCurrency ?? 'EUR') }}</td>
+                  <td class="px-4 py-3 text-emerald-300 text-right font-mono">{{ formatCurrency(d.amountInEuro) }}</td>
                 </tr>
               }
             </tbody>

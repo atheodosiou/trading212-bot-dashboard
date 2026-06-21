@@ -69,7 +69,7 @@
                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">CCY</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Value</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" title="Net account value for this order execution." aria-label="Order Net Value. Net account value for this order execution.">Order Net Value</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">FX Rate</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Realised P&L</th>
               </tr>
@@ -78,19 +78,19 @@
               @for (order of orders(); track order.id) {
                 <tr class="hover:bg-slate-700/20">
                   <td class="px-4 py-3 text-slate-400 whitespace-nowrap font-mono text-xs">{{ formatDate(order.dateExecuted) }}</td>
-                  <td class="px-4 py-3 text-white font-medium">{{ order.ticker }}</td>
+                  <td class="px-4 py-3 text-white font-medium" [title]="tickerTitle(order)">{{ displayTicker(order) }}</td>
                   <td class="px-4 py-3 text-slate-400 max-w-[180px] truncate" [title]="order.instrumentName ?? ''">{{ order.instrumentName ?? '—' }}</td>
                   <td class="px-4 py-3">
                     <app-badge [label]="order.side" [variant]="sideBadge(order.side)" />
                   </td>
-                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(order.fillQuantity, 6) }}</td>
-                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(order.fillPrice, 4) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatQuantity(order.fillQuantity) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatPrice(order.fillPrice) }}</td>
                   <td class="px-4 py-3 text-slate-400">{{ order.instrumentCurrency }}</td>
-                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(order.walletNetValue, 2) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatCurrency(order.walletNetValue, order.accountCurrency) }}</td>
                   <td class="px-4 py-3 text-slate-400 text-right font-mono">{{ formatNum(order.walletFxRate, 4) }}</td>
                   <td class="px-4 py-3 text-right font-mono font-semibold"
                     [class]="(order.walletRealisedPnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'">
-                    {{ formatNum(order.walletRealisedPnl, 2) }}
+                    {{ formatSignedCurrency(order.walletRealisedPnl, order.accountCurrency) }}
                   </td>
                 </tr>
               }

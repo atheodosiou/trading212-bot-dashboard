@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Trading212ApiService } from '../../../core/api/trading212-api.service';
+import { getDisplayTicker, getInternalTicker } from '../../../core/models/ticker-display';
 import type { T212Dividend } from '../../../core/models/trading212.models';
 
 @Component({
@@ -49,6 +50,34 @@ export class T212DividendsPage implements OnInit {
   onYearChange(event: Event): void {
     this.selectedYear.set(Number((event.target as HTMLSelectElement).value));
     this.load();
+  }
+
+  displayTicker(dividend: T212Dividend): string {
+    return getDisplayTicker(dividend);
+  }
+
+  tickerTitle(dividend: T212Dividend): string {
+    const internalTicker = getInternalTicker(dividend);
+    const parts = [
+      dividend.instrumentName,
+      dividend.instrumentIsin,
+      internalTicker ? `Internal ticker: ${internalTicker}` : null,
+    ];
+    return parts.filter((part): part is string => Boolean(part)).join(' | ');
+  }
+
+  formatQuantity(val: number | null | undefined): string {
+    if (val == null) return 'â€”';
+    return val.toLocaleString('en-GB', { maximumFractionDigits: 4 });
+  }
+
+  formatPrice(val: number | null | undefined): string {
+    return this.formatNum(val, 2);
+  }
+
+  formatCurrency(val: number | null | undefined, currency = 'EUR'): string {
+    if (val == null) return 'â€”';
+    return val.toLocaleString('en-GB', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   formatDate(iso: string): string {

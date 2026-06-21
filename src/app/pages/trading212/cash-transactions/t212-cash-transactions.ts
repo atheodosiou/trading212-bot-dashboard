@@ -40,7 +40,7 @@ export class T212CashTransactionsPage implements OnInit {
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(this.extractMessage(err, 'Failed to load cash transactions.'));
+        this.error.set(this.extractMessage(err, 'Failed to load account cash movements.'));
         this.loading.set(false);
       },
     });
@@ -60,6 +60,11 @@ export class T212CashTransactionsPage implements OnInit {
   formatNum(val: number | null | undefined, digits = 2): string {
     if (val == null) return '—';
     return val.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  formatCurrency(val: number | null | undefined, currency: string): string {
+    if (val == null) return 'â€”';
+    return val.toLocaleString('en-GB', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   private extractMessage(err: HttpErrorResponse, fallback: string): string {

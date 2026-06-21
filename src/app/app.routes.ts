@@ -48,6 +48,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'trading212/tax-center',
+        loadComponent: () =>
+          import('./pages/trading212/tax-center/t212-tax-center').then(
+            m => m.T212TaxCenterPage,
+          ),
+      },
+      {
         path: 'trading212/reports',
         loadComponent: () =>
           import('./pages/trading212/reports/t212-reports').then(m => m.T212ReportsPage),

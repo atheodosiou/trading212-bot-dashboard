@@ -50,55 +50,64 @@
                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-8"></th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Ticker</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Quantity</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Cost</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Invested</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Cost EUR</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" title="FIFO cost basis for currently held shares." aria-label="Open Positions Cost Basis EUR. FIFO cost basis for currently held shares.">Open Positions Cost Basis EUR</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Lots</th>
               </tr>
             </thead>
             <tbody>
-              @for (pos of positions(); track pos.ticker) {
+              @for (pos of positions(); track pos.internalTicker || pos.displayTicker) {
                 <!-- Position row -->
                 <tr
                   class="border-b border-slate-700/40 hover:bg-slate-700/20 cursor-pointer"
-                  (click)="toggleExpanded(pos.ticker)"
-                  [attr.aria-expanded]="isExpanded(pos.ticker)"
+                  (click)="toggleExpanded(pos)"
+                  [attr.aria-expanded]="isExpanded(pos)"
                 >
                   <td class="px-4 py-3">
                     <svg class="w-4 h-4 text-slate-500 transition-transform"
-                      [class.rotate-90]="isExpanded(pos.ticker)"
+                      [class.rotate-90]="isExpanded(pos)"
                       fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                     </svg>
                   </td>
-                  <td class="px-4 py-3 text-white font-semibold">{{ pos.ticker }}</td>
-                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(pos.quantity, 6) }}</td>
-                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatNum(pos.averageCost, 4) }}</td>
-                  <td class="px-4 py-3 text-slate-200 text-right font-mono font-semibold">{{ formatNum(pos.totalInvested, 2) }}</td>
+                  <td class="px-4 py-3 text-white font-semibold" [title]="tickerTitle(pos)">{{ displayTicker(pos) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatQuantity(pos.quantity) }}</td>
+                  <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ formatPrice(pos.averageCostAccount) }}</td>
+                  <td class="px-4 py-3 text-slate-200 text-right font-mono font-semibold">{{ formatCurrency(pos.totalInvestedAccount, pos.accountCurrency) }}</td>
                   <td class="px-4 py-3 text-slate-500 text-right text-xs">{{ pos.lots.length }}</td>
                 </tr>
 
                 <!-- Lots expansion -->
-                @if (isExpanded(pos.ticker) && pos.lots.length > 0) {
+                @if (isExpanded(pos) && pos.lots.length > 0) {
                   <tr class="bg-slate-900/50">
                     <td colspan="6" class="px-0 py-0">
                       <div class="px-12 py-3">
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Lots for {{ pos.ticker }}</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                          Open Lots for {{ displayTicker(pos) }}
+                          @if (internalTicker(pos); as internal) {
+                            <span class="normal-case tracking-normal text-slate-600">Internal ticker: {{ internal }}</span>
+                          }
+                        </p>
                         <table class="w-full text-xs">
                           <thead>
                             <tr class="text-slate-600 uppercase">
                               <th class="pb-1 text-left pr-6">Date</th>
                               <th class="pb-1 text-right pr-6">Qty Remaining</th>
-                              <th class="pb-1 text-right pr-6">Buy Price</th>
-                              <th class="pb-1 text-right">Total Cost</th>
+                              <th class="pb-1 text-right pr-6">Cost/Share EUR</th>
+                              <th class="pb-1 text-right pr-6">Total Cost EUR</th>
+                              <th class="pb-1 text-right pr-6">Cost/Share Native</th>
+                              <th class="pb-1 text-left pr-6">Instrument Currency</th>
                             </tr>
                           </thead>
                           <tbody class="divide-y divide-slate-800">
                             @for (lot of pos.lots; track $index) {
                               <tr>
-                                <td class="py-1.5 pr-6 text-slate-400 font-mono">{{ formatDate(lot.date) }}</td>
-                                <td class="py-1.5 pr-6 text-slate-300 text-right font-mono">{{ formatNum(lot.quantity, 6) }}</td>
-                                <td class="py-1.5 pr-6 text-slate-300 text-right font-mono">{{ formatNum(lot.price, 4) }}</td>
-                                <td class="py-1.5 text-slate-200 text-right font-mono">{{ formatNum(lot.totalCost, 2) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-400 font-mono">{{ formatDate(lot.acquiredOn) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-300 text-right font-mono">{{ formatQuantity(lot.qty) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-300 text-right font-mono">{{ formatPrice(lot.costPerShareAccount) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-200 text-right font-mono">{{ formatCurrency(lotTotalCostAccount(lot), lot.accountCurrency) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-300 text-right font-mono">{{ formatPrice(lot.costPerShareNative) }}</td>
+                                <td class="py-1.5 pr-6 text-slate-400">{{ lot.instrumentCurrency }}</td>
                               </tr>
                             }
                           </tbody>

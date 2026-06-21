@@ -25,7 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     path: '/trading212/cash-transactions',
-    label: 'Cash',
+    label: 'Cash Movements',
     icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
   },
   {
@@ -39,8 +39,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z',
   },
   {
+    path: '/trading212/tax-center',
+    label: 'Tax Center',
+    icon: 'M9 7h6m-6 4h6m-6 4h3m-5 6h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
+  },
+  {
     path: '/trading212/reports',
-    label: 'Export Report',
+    label: 'Report History',
     icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
   },
   {
