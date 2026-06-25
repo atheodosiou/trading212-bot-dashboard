@@ -11,9 +11,18 @@ export type AnalysisStatus =
   | 'Speculative'
   | 'Avoid For Now';
 
+export interface AnalysisMetric {
+  key?: string | null;
+  label?: string | null;
+  value: number | null;
+  unit?: string | null;
+  score?: number | null;
+  note?: string | null;
+}
+
 export interface AnalysisCategory {
   score: number | null;
-  metricsUsed: string[];
+  metricsUsed: AnalysisMetric[];
 }
 
 export interface AnalysisCategories {
@@ -40,6 +49,32 @@ export interface AnalysisProfile {
   weights: AnalysisProfileWeights;
 }
 
+export type ResearchMacroAlignment = 'supportive' | 'neutral' | 'restrictive';
+export type ResearchOverallView = 'bullish' | 'neutral' | 'bearish';
+export type ResearchDriverType = 'positive' | 'negative' | 'warning';
+export type ResearchDriverCategory =
+  | 'business'
+  | 'financial'
+  | 'valuation'
+  | 'momentum'
+  | 'risk'
+  | 'macro';
+
+export interface ResearchKeyDriver {
+  title: string;
+  type: ResearchDriverType;
+  category: ResearchDriverCategory;
+  explanation: string;
+}
+
+export interface ResearchReport {
+  macroAlignment: ResearchMacroAlignment;
+  overallView: ResearchOverallView;
+  confidence: number;
+  investmentThesis: string;
+  keyDrivers: ResearchKeyDriver[];
+}
+
 interface AnalysisProfilesEnvelope {
   profiles?: AnalysisProfile[];
   items?: AnalysisProfile[];
@@ -52,7 +87,10 @@ export interface AnalysisReport {
   name?: string;
   overallScore: number | null;
   status?: AnalysisStatus | string | null;
+  strengths: string[];
+  weaknesses: string[];
   categories: AnalysisCategories;
+  research?: ResearchReport | null;
   profile?: AnalysisProfile | null;
   generatedAt?: string | null;
   expiresAt?: string | null;

@@ -13,6 +13,7 @@ import { Subscription, forkJoin, interval, switchMap, takeWhile } from 'rxjs';
 import { Trading212ApiService } from '../../../core/api/trading212-api.service';
 import { BadgeComponent } from '../../../shared/ui/badge/badge';
 import { CardComponent } from '../../../shared/ui/card/card';
+import type { BadgeVariant } from '../../../shared/ui/badge/badge';
 import type {
   ConnectionStatus,
   ConnectionStatusKind,
@@ -84,10 +85,11 @@ export class T212DashboardPage implements OnInit, OnDestroy {
   readonly syncHistoryError = signal('');
 
   // Derived sync status kind — drives badge and label
-  readonly syncStatusKind = computed((): 'running' | 'success' | 'failed' | 'never' => {
+  readonly syncStatusKind = computed((): 'running' | 'success' | 'failed' | 'rate_limited' | 'never' => {
     const s = this.syncStatus();
     if (!s) return 'never';
     if (s.isRunning) return 'running';
+    if (s.rateLimit?.isLimited) return 'rate_limited';
     const hasSuccess = s.lastSuccessfulSync != null;
     const hasFailed = s.lastFailedSync != null;
     if (!hasSuccess && !hasFailed) return 'never';
@@ -98,9 +100,10 @@ export class T212DashboardPage implements OnInit, OnDestroy {
       : 'success';
   });
 
-  readonly syncStatusBadgeVariant = computed((): 'running' | 'error' | 'demo' => {
+  readonly syncStatusBadgeVariant = computed((): BadgeVariant => {
     const kind = this.syncStatusKind();
     if (kind === 'running' || kind === 'success') return 'running';
+    if (kind === 'rate_limited') return 'warning';
     if (kind === 'failed') return 'error';
     return 'demo';
   });
@@ -109,6 +112,7 @@ export class T212DashboardPage implements OnInit, OnDestroy {
     const kind = this.syncStatusKind();
     if (kind === 'running') return 'Running';
     if (kind === 'success') return 'Up to date';
+    if (kind === 'rate_limited') return 'Rate limited';
     if (kind === 'failed') return 'Failed';
     return 'Never synced';
   });
@@ -236,7 +240,11 @@ export class T212DashboardPage implements OnInit, OnDestroy {
   // ─── Template helpers ─────────────────────────────────────────────────────────
 
   isSyncDisabled(): boolean {
-    return this.syncing() || (this.syncStatus()?.isRunning ?? false) || !this.credentialsReady();
+    const status = this.syncStatus();
+    return this.syncing()
+      || (status?.isRunning ?? false)
+      || (status?.rateLimit?.isLimited ?? false)
+      || !this.credentialsReady();
   }
 
   validationBadgeVariant(status: string): 'running' | 'error' | 'demo' {
@@ -273,6 +281,18 @@ export class T212DashboardPage implements OnInit, OnDestroy {
   }
 
   syncResultMessage(result: SyncResult): string {
+    if (result.status === 'rate_limited') {
+      if (result.resetAt) {
+        return `Trading212 rate limit reached. Try again after ${this.formatDateTime(result.resetAt)}.`;
+      }
+
+      return 'Trading212 rate limit reached. Please try again later.';
+    }
+
+    if (result.status === 'failed') {
+      return result.message || 'Trading212 sync failed.';
+    }
+
     const orders = result.result.orders.synced;
     const dividends = result.result.dividends.synced;
     const cashMovements = result.result.cashTransactions.synced;
@@ -281,6 +301,8 @@ export class T212DashboardPage implements OnInit, OnDestroy {
   }
 
   skippedDuplicatesMessage(result: SyncResult): string {
+    if (result.status !== 'success') return '';
+
     const skipped = [
       this.skippedPart(result.result.orders.skipped, 'order'),
       this.skippedPart(result.result.dividends.skipped, 'dividend'),
@@ -288,6 +310,37 @@ export class T212DashboardPage implements OnInit, OnDestroy {
     ].filter((part): part is string => part !== null);
 
     return skipped.length ? `Skipped duplicates: ${skipped.join(', ')}.` : '';
+  }
+
+  syncResultAlertClass(result: SyncResult): string {
+    if (result.status === 'success') {
+      return 'p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm';
+    }
+
+    if (result.status === 'rate_limited') {
+      return 'p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-200 text-sm';
+    }
+
+    return 'p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm';
+  }
+
+  rateLimitRetryMessage(status: SyncStatus): string {
+    if (!status.rateLimit?.isLimited) return '';
+    if (status.rateLimit.resetAt) {
+      return `Sync is rate limited until ${this.formatDateTime(status.rateLimit.resetAt)}.`;
+    }
+
+    if (status.rateLimit.retryAfterSeconds != null) {
+      return `Sync is rate limited. Try again in ${this.formatSeconds(status.rateLimit.retryAfterSeconds)}.`;
+    }
+
+    return 'Sync is rate limited. Please try again later.';
+  }
+
+  rateLimitQuotaMessage(status: SyncStatus): string {
+    const rateLimit = status.rateLimit;
+    if (!rateLimit || rateLimit.remaining == null || rateLimit.limit == null) return '';
+    return `${rateLimit.remaining.toLocaleString('en-GB')} of ${rateLimit.limit.toLocaleString('en-GB')} requests remaining.`;
   }
 
   formatCurrency(val: number | null | undefined): string {
@@ -298,6 +351,16 @@ export class T212DashboardPage implements OnInit, OnDestroy {
   formatDuration(ms: number | null | undefined): string {
     if (ms == null) return '—';
     return `${(ms / 1000).toFixed(1)}s`;
+  }
+
+  formatSeconds(seconds: number): string {
+    if (seconds < 60) return `${seconds} ${this.pluralize('second', seconds)}`;
+
+    const minutes = Math.ceil(seconds / 60);
+    if (minutes < 60) return `${minutes} ${this.pluralize('minute', minutes)}`;
+
+    const hours = Math.ceil(minutes / 60);
+    return `${hours} ${this.pluralize('hour', hours)}`;
   }
 
   formatDateTime(iso: string | null | undefined): string {

@@ -1,0 +1,107 @@
+<section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5" aria-labelledby="vix-fear-gauge-heading">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h2 id="vix-fear-gauge-heading" class="text-sm font-semibold text-white">Market Fear Gauge</h2>
+      <p class="mt-1 text-xs text-slate-500">Based on VIX percentile over the last 252 trading days</p>
+    </div>
+
+    @if (gauge(); as data) {
+      <span class="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-semibold text-slate-300">
+        {{ data.symbol }}
+      </span>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="mt-5 grid gap-5 lg:grid-cols-[220px_1fr]" aria-label="Loading market fear gauge">
+      <div class="h-32 animate-pulse rounded-xl bg-slate-700/40"></div>
+      <div class="space-y-3">
+        <div class="h-4 w-2/3 animate-pulse rounded bg-slate-700/50"></div>
+        <div class="h-4 w-1/2 animate-pulse rounded bg-slate-700/50"></div>
+        <div class="h-16 animate-pulse rounded-lg bg-slate-700/40"></div>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="mt-5 rounded-lg border border-red-500/30 bg-red-500/10 p-4" role="alert">
+      <p class="text-sm font-semibold text-red-300">Could not load Market Fear Gauge.</p>
+      <p class="mt-1 text-sm text-red-200">{{ error() }}</p>
+      <button
+        type="button"
+        (click)="load()"
+        class="mt-3 rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-100 transition-colors hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"
+      >
+        Retry
+      </button>
+    </div>
+  } @else if (gauge(); as data) {
+    <div class="mt-5 grid gap-5 lg:grid-cols-[220px_1fr]">
+      <div class="flex flex-col items-center justify-center">
+        <svg
+          width="220"
+          height="132"
+          viewBox="0 0 220 132"
+          class="max-w-full"
+          role="img"
+          [attr.aria-label]="'VIX fear score ' + formatScore(data.fearScore) + ' out of 100. ' + data.label"
+        >
+          <path
+            d="M30 112 A80 80 0 0 1 190 112"
+            pathLength="100"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="14"
+            stroke-linecap="round"
+            class="text-slate-700"
+          />
+          <path
+            d="M30 112 A80 80 0 0 1 190 112"
+            pathLength="100"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="14"
+            stroke-linecap="round"
+            stroke-dasharray="100"
+            [attr.stroke-dashoffset]="scoreDashOffset()"
+            [class]="scoreClasses()"
+          />
+          <text x="30" y="130" text-anchor="middle" class="fill-slate-500" font-size="10">Fear</text>
+          <text x="190" y="130" text-anchor="middle" class="fill-slate-500" font-size="10">Calm</text>
+          <text x="110" y="78" text-anchor="middle" class="fill-white font-semibold" font-size="18">{{ data.label }}</text>
+          <text x="110" y="100" text-anchor="middle" class="fill-slate-400" font-size="13">{{ formatScore(data.fearScore) }}/100</text>
+        </svg>
+
+        <p class="mt-2 text-center text-xs text-slate-500">Low score means more fear. High score means calmer markets.</p>
+      </div>
+
+      <div class="space-y-4">
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div class="rounded-lg border border-slate-700/60 bg-slate-900/60 p-3">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Current VIX</p>
+            <p class="mt-1 font-mono text-xl font-semibold text-white">{{ formatVix(data.value) }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-700/60 bg-slate-900/60 p-3">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">1Y Percentile</p>
+            <p class="mt-1 font-mono text-xl font-semibold text-white">{{ formatPercentile(data.percentile1Y) }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-700/60 bg-slate-900/60 p-3">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Regime</p>
+            <p class="mt-1 text-sm font-semibold" [class]="scoreClasses()">{{ data.label }}</p>
+          </div>
+        </div>
+
+        <p class="text-sm leading-relaxed text-slate-300">{{ data.description }}</p>
+
+        @if (previousCloseText()) {
+          <p class="rounded-lg border border-slate-700/60 bg-slate-900/60 p-3 text-xs text-slate-400">
+            Previous close: {{ previousCloseText() }}
+          </p>
+        }
+
+        <div class="flex flex-wrap gap-3 text-xs text-slate-500">
+          <span>Updated: {{ formatDate(data.updatedAt) }}</span>
+          <span>Source: {{ data.source }}</span>
+        </div>
+      </div>
+    </div>
+  }
+</section>

@@ -20,6 +20,13 @@ export interface SyncStatus {
   lastSuccessfulSync: string | null;
   lastFailedSync: string | null;
   lastDurationMs: number | null;
+  rateLimit?: {
+    isLimited: boolean;
+    resetAt?: string;
+    retryAfterSeconds?: number;
+    remaining?: number;
+    limit?: number;
+  };
   totals: {
     ordersSynced: number;
     dividendsSynced: number;
@@ -43,14 +50,31 @@ export interface SyncRecordResult {
   skipped: number;
 }
 
-export interface SyncResult {
+export type SyncResult =
+  | SyncSuccessResult
+  | SyncRateLimitedResult
+  | SyncFailedResult;
+
+export interface SyncSuccessResult {
   status: 'success';
   result: {
     orders: SyncRecordResult;
     dividends: SyncRecordResult;
     cashTransactions: SyncRecordResult;
-    completedAt: string;
+    completedAt?: string;
   };
+}
+
+export interface SyncRateLimitedResult {
+  status: 'rate_limited';
+  message: string;
+  retryAfterSeconds?: number;
+  resetAt?: string;
+}
+
+export interface SyncFailedResult {
+  status: 'failed';
+  message?: string;
 }
 
 // ─── Query Params ─────────────────────────────────────────────────────────────
@@ -86,7 +110,7 @@ export interface T212Order {
   instrumentCurrency: string;
   walletNetValue: number;
   walletFxRate?: number;
-  walletRealisedPnl?: number;
+  walletRealisedPnl?: number | null;
   accountCurrency: string;
 }
 

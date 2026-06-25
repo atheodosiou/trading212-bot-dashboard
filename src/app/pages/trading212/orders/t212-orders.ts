@@ -73,7 +73,7 @@ export class T212OrdersPage implements OnInit {
   }
 
   formatQuantity(val: number | null | undefined): string {
-    if (val == null) return 'â€”';
+    if (val == null) return '-';
     return val.toLocaleString('en-GB', { maximumFractionDigits: 4 });
   }
 
@@ -82,24 +82,24 @@ export class T212OrdersPage implements OnInit {
   }
 
   formatCurrency(val: number | null | undefined, currency: string): string {
-    if (val == null) return 'â€”';
+    if (val == null) return '-';
     return val.toLocaleString('en-GB', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   formatSignedCurrency(val: number | null | undefined, currency: string): string {
-    if (val == null) return 'â€”';
+    if (val == null) return '-';
     const sign = val > 0 ? '+' : '';
     return `${sign}${this.formatCurrency(val, currency)}`;
   }
 
   formatDate(iso: string): string {
-    if (!iso) return '—';
+    if (!iso) return '-';
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-GB');
   }
 
   formatNum(val: number | null | undefined, digits = 2): string {
-    if (val == null) return '—';
+    if (val == null) return '-';
     return val.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
 

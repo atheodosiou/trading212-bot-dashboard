@@ -16,6 +16,8 @@
     }
   </div>
 
+  <app-vix-fear-gauge-widget />
+
   <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
     <label for="analysis-profile" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
       Analysis Profile
@@ -178,6 +180,109 @@
         </div>
       </div>
 
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
+        <h2 class="text-sm font-semibold text-white">Investment Insights</h2>
+        <div class="mt-4 grid gap-5 lg:grid-cols-2">
+          <section aria-labelledby="investment-strengths-heading">
+            <h3 id="investment-strengths-heading" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Strengths
+            </h3>
+            @if (strengths().length > 0) {
+              <ul class="mt-3 space-y-2">
+                @for (strength of strengths(); track strength) {
+                  <li class="flex gap-2 text-sm text-slate-200">
+                    <span class="shrink-0 text-emerald-300" aria-hidden="true">✓</span>
+                    <span>{{ strength }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="mt-3 text-sm text-slate-500">No notable strengths detected.</p>
+            }
+          </section>
+
+          <section aria-labelledby="investment-weaknesses-heading">
+            <h3 id="investment-weaknesses-heading" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Weaknesses
+            </h3>
+            @if (weaknesses().length > 0) {
+              <ul class="mt-3 space-y-2">
+                @for (weakness of weaknesses(); track weakness) {
+                  <li class="flex gap-2 text-sm text-slate-200">
+                    <span class="shrink-0 text-red-300" aria-hidden="true">✗</span>
+                    <span>{{ weakness }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="mt-3 text-sm text-slate-500">No notable weaknesses detected.</p>
+            }
+          </section>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="text-sm font-semibold text-white">Research Summary</h2>
+            <p class="mt-1 text-xs text-slate-500">Research Report V1</p>
+          </div>
+
+          @if (research(); as researchReport) {
+            <div class="flex flex-wrap gap-2">
+              <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border" [class]="overallViewClasses(researchReport.overallView)">
+                {{ overallViewLabel(researchReport.overallView) }}
+              </span>
+              <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border" [class]="macroAlignmentClasses(researchReport.macroAlignment)">
+                Macro: {{ macroAlignmentLabel(researchReport.macroAlignment) }}
+              </span>
+            </div>
+          }
+        </div>
+
+        @if (research(); as researchReport) {
+          <div class="mt-5 grid gap-4 lg:grid-cols-[180px_1fr]">
+            <div class="rounded-lg border border-slate-700/60 bg-slate-900/60 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Confidence</p>
+              <p class="mt-2 font-mono text-3xl font-semibold text-white">{{ formatConfidence(researchReport.confidence) }}</p>
+            </div>
+
+            <div class="rounded-lg border border-slate-700/60 bg-slate-900/60 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Investment Thesis</p>
+              <p class="mt-2 text-sm leading-relaxed text-slate-200">{{ researchReport.investmentThesis }}</p>
+            </div>
+          </div>
+
+          <div class="mt-5">
+            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Key Drivers</h3>
+            @if (researchReport.keyDrivers.length > 0) {
+              <div class="mt-3 grid gap-3 lg:grid-cols-3">
+                @for (driver of researchReport.keyDrivers; track driver.title || driver.explanation || $index) {
+                  <article class="rounded-lg border p-4" [class]="driverClasses(driver.type)">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                      <h4 class="text-sm font-semibold" [class]="driverTextClasses(driver.type)">{{ driver.title }}</h4>
+                      <span class="rounded-full border border-slate-700/60 bg-slate-950/40 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        {{ categoryLabel(driver.category) }}
+                      </span>
+                    </div>
+                    <p class="mt-3 text-sm leading-relaxed text-slate-300">{{ driver.explanation }}</p>
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="mt-3 text-sm text-slate-500">No key drivers available.</p>
+            }
+          </div>
+        } @else {
+          <div class="mt-5 rounded-lg border border-slate-700/60 bg-slate-900/60 p-4">
+            <p class="text-sm font-semibold text-slate-300">Research summary is not available for this report.</p>
+            <p class="mt-1 text-sm text-slate-500">
+              Generate a fresh report after the backend deploy/cache refresh to include Research Report V1.
+            </p>
+          </div>
+        }
+      </div>
+
       <div class="grid gap-4 lg:grid-cols-3">
         <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
           <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Overall Score</p>
@@ -213,13 +318,35 @@
               <div class="mt-3">
                 <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Metrics Used</p>
                 @if (card.metrics.length > 0) {
-                  <ul class="mt-2 space-y-1">
-                    @for (metric of card.metrics; track metric) {
-                      <li class="text-xs text-slate-300">{{ metricLabel(metric) }}</li>
-                    }
-                  </ul>
+                  <div class="mt-2 overflow-x-auto">
+                    <table class="w-full text-xs">
+                      <thead>
+                        <tr class="text-slate-600">
+                          <th class="pb-1 text-left font-semibold uppercase tracking-wider">Metric</th>
+                          <th class="pb-1 text-right font-semibold uppercase tracking-wider">Value</th>
+                          <th class="pb-1 text-right font-semibold uppercase tracking-wider">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-800">
+                        @for (metric of card.metrics; track metric.key || metric.label || $index) {
+                          <tr>
+                            <td class="py-1.5 pr-3 text-slate-300">{{ metricLabel(metric) }}</td>
+                            <td class="py-1.5 px-3 text-right text-slate-300 font-mono">{{ formatMetricValue(metric) }}</td>
+                            <td class="py-1.5 pl-3 text-right text-slate-200 font-mono">{{ formatMetricScore(metric.score) }}</td>
+                          </tr>
+                          @if (metricNote(metric); as note) {
+                            <tr>
+                              <td colspan="3" class="border-t border-slate-800/70 pb-2 pt-1.5 text-[11px] leading-relaxed text-slate-500">
+                                {{ note }}
+                              </td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 } @else {
-                  <p class="mt-2 text-xs text-slate-500">No metrics listed</p>
+                  <p class="mt-2 text-xs text-slate-500">No metrics available for this category.</p>
                 }
               </div>
             </div>

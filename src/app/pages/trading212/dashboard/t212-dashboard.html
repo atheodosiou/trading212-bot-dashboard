@@ -39,6 +39,16 @@
           Sync Trading212
         }
         </button>
+        @if (syncStatus(); as status) {
+          @if (status.rateLimit?.isLimited) {
+            <p class="text-xs text-yellow-200 text-right">
+              {{ rateLimitRetryMessage(status) }}
+              @if (rateLimitQuotaMessage(status); as quotaMessage) {
+                <span class="text-slate-400">{{ quotaMessage }}</span>
+              }
+            </p>
+          }
+        }
         @if (!credentialsReady()) {
           <p class="text-xs text-slate-500">
             <a routerLink="/trading212/settings" class="text-blue-400 hover:text-blue-300 underline-offset-2 underline">Add credentials</a> and set one as active to enable sync.
@@ -75,7 +85,7 @@
 
   <!-- Sync result banner -->
   @if (syncResult(); as result) {
-    <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm">
+    <div [class]="syncResultAlertClass(result)" role="alert">
       {{ syncResultMessage(result) }}
       @if (skippedDuplicatesMessage(result); as skippedMessage) {
         <span class="text-slate-300 ml-2">{{ skippedMessage }}</span>
@@ -178,7 +188,14 @@
           @if (s.isRunning) {
             <span class="text-blue-300 text-sm">Sync in progress — page will update automatically</span>
           }
+          @if (s.rateLimit?.isLimited) {
+            <span class="text-yellow-200 text-sm">{{ rateLimitRetryMessage(s) }}</span>
+          }
         </div>
+
+        @if (s.rateLimit?.isLimited && rateLimitQuotaMessage(s); as quotaMessage) {
+          <p class="text-xs text-slate-400 mb-5">{{ quotaMessage }}</p>
+        }
 
         <!-- Stats grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">

@@ -23,12 +23,18 @@ import {
   type AnalysisCategory,
   type AnalysisCategories,
   type AnalysisInstrumentSearchResult,
+  type AnalysisMetric,
   type AnalysisProfile,
   type AnalysisProfileWeights,
   type AnalysisReport,
   type AnalysisStatus,
+  type ResearchDriverCategory,
+  type ResearchDriverType,
+  type ResearchMacroAlignment,
+  type ResearchOverallView,
 } from '../../core/api/analysis-api.service';
 import { ScoreGaugeComponent } from '../../shared/ui/score-gauge/score-gauge';
+import { VixFearGaugeWidgetComponent } from './components/vix-fear-gauge-widget/vix-fear-gauge-widget.component';
 import {
   ValuationCenterStateService,
   type SelectedInstrument,
@@ -37,7 +43,7 @@ import {
 interface CategoryCard {
   label: string;
   score: number | null;
-  metrics: string[];
+  metrics: AnalysisMetric[];
 }
 
 interface ProfileWeightLine {
@@ -45,27 +51,10 @@ interface ProfileWeightLine {
   value: number;
 }
 
-const METRIC_LABELS: Record<string, string> = {
-  revenueGrowthTTMYoy: 'Revenue Growth',
-  netMarginTTM: 'Net Margin',
-  operatingMarginTTM: 'Operating Margin',
-  roeTTM: 'Return on Equity (ROE)',
-  currentRatioQuarterly: 'Current Ratio',
-  'totalDebt/totalEquityQuarterly': 'Debt / Equity',
-  cashRatioQuarterly: 'Cash Ratio',
-  peTTM: 'P/E',
-  pb: 'Price / Book',
-  psTTM: 'Price / Sales',
-  pegTTM: 'PEG',
-  '52WeekPriceReturnDaily': '52 Week Return',
-  beta: 'Beta',
-  '3MonthADReturnStd': '3 Month Volatility',
-};
-
 @Component({
   selector: 'app-valuation-center',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ScoreGaugeComponent],
+  imports: [ScoreGaugeComponent, VixFearGaugeWidgetComponent],
   templateUrl: './valuation-center.html',
 })
 export class ValuationCenterPage implements OnDestroy {
@@ -103,6 +92,9 @@ export class ValuationCenterPage implements OnDestroy {
     const selected = this.selectedInstrument();
     return report?.companyName?.trim() || report?.name?.trim() || selected?.name || 'Selected stock';
   });
+  readonly strengths = computed(() => this.insightsValue(this.report()?.strengths));
+  readonly weaknesses = computed(() => this.insightsValue(this.report()?.weaknesses));
+  readonly research = computed(() => this.report()?.research ?? null);
   readonly overallScore = computed(() => this.scoreValue(this.report()?.overallScore));
   readonly status = computed(() => this.statusValue(this.report()?.status));
   readonly categoryCards = computed<CategoryCard[]>(() => {
@@ -255,8 +247,120 @@ export class ValuationCenterPage implements OnDestroy {
     return `${percent.toLocaleString('en-GB', { maximumFractionDigits: 1 })}%`;
   }
 
-  metricLabel(metric: string): string {
-    return METRIC_LABELS[metric] ?? metric;
+  metricLabel(metric: AnalysisMetric): string {
+    return metric.label?.trim() || metric.key?.trim() || 'Unknown metric';
+  }
+
+  formatMetricValue(metric: AnalysisMetric): string {
+    if (metric.value === null || metric.value === undefined) return '-';
+
+    const unit = metric.unit?.trim();
+    const formatted = this.formatNumber(metric.value);
+
+    if (unit === '%') return `${formatted}%`;
+    if (unit) return `${formatted} ${unit}`;
+
+    return formatted;
+  }
+
+  formatMetricScore(score: number | null | undefined): string {
+    if (score === null || score === undefined) return '-';
+    return score.toLocaleString('en-GB', { maximumFractionDigits: 1 });
+  }
+
+  metricNote(metric: AnalysisMetric): string {
+    return metric.note?.trim() ?? '';
+  }
+
+  formatConfidence(value: number | null | undefined): string {
+    if (value === null || value === undefined) return '-';
+    const percent = value <= 1 ? value * 100 : value;
+    return `${percent.toLocaleString('en-GB', { maximumFractionDigits: 0 })}%`;
+  }
+
+  overallViewLabel(view: ResearchOverallView | string): string {
+    switch (view) {
+      case 'bullish':
+        return 'Bullish';
+      case 'bearish':
+        return 'Bearish';
+      default:
+        return 'Neutral';
+    }
+  }
+
+  macroAlignmentLabel(alignment: ResearchMacroAlignment | string): string {
+    switch (alignment) {
+      case 'supportive':
+        return 'Supportive';
+      case 'restrictive':
+        return 'Restrictive';
+      default:
+        return 'Neutral';
+    }
+  }
+
+  categoryLabel(category: ResearchDriverCategory | string): string {
+    switch (category) {
+      case 'business':
+        return 'Business';
+      case 'financial':
+        return 'Financial';
+      case 'valuation':
+        return 'Valuation';
+      case 'momentum':
+        return 'Momentum';
+      case 'risk':
+        return 'Risk';
+      case 'macro':
+        return 'Macro';
+      default:
+        return category;
+    }
+  }
+
+  overallViewClasses(view: ResearchOverallView | string): string {
+    switch (view) {
+      case 'bullish':
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+      case 'bearish':
+        return 'bg-red-500/10 text-red-300 border-red-500/30';
+      default:
+        return 'bg-slate-500/10 text-slate-300 border-slate-500/30';
+    }
+  }
+
+  macroAlignmentClasses(alignment: ResearchMacroAlignment | string): string {
+    switch (alignment) {
+      case 'supportive':
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+      case 'restrictive':
+        return 'bg-orange-500/10 text-orange-300 border-orange-500/30';
+      default:
+        return 'bg-blue-500/10 text-blue-300 border-blue-500/30';
+    }
+  }
+
+  driverClasses(type: ResearchDriverType | string): string {
+    switch (type) {
+      case 'positive':
+        return 'border-emerald-500/30 bg-emerald-500/10';
+      case 'negative':
+        return 'border-red-500/30 bg-red-500/10';
+      default:
+        return 'border-yellow-500/30 bg-yellow-500/10';
+    }
+  }
+
+  driverTextClasses(type: ResearchDriverType | string): string {
+    switch (type) {
+      case 'positive':
+        return 'text-emerald-300';
+      case 'negative':
+        return 'text-red-300';
+      default:
+        return 'text-yellow-300';
+    }
   }
 
   isScoreSuccess(value: number | null): boolean {
@@ -327,9 +431,19 @@ export class ValuationCenterPage implements OnDestroy {
     return value.score;
   }
 
-  private metricsValue(metrics: string[] | null | undefined): string[] {
+  private metricsValue(metrics: AnalysisMetric[] | null | undefined): AnalysisMetric[] {
     if (metrics === null || metrics === undefined) return [];
-    return metrics.filter(metric => metric.trim().length > 0);
+    return metrics.filter(metric =>
+      Boolean(metric.key?.trim() || metric.label?.trim()),
+    );
+  }
+
+  private insightsValue(items: string[] | null | undefined): string[] {
+    return items?.map(item => item.trim()).filter(Boolean) ?? [];
+  }
+
+  private formatNumber(value: number): string {
+    return value.toLocaleString('en-GB', { maximumFractionDigits: 2 });
   }
 
   private weightLines(weights: AnalysisProfileWeights): ProfileWeightLine[] {
