@@ -15,11 +15,18 @@ export interface SyncOptions {
   fullResync?: boolean;
 }
 
+// Exact casing as returned by GET /trading212/sync/status.
+export type BackendSyncStatus = 'RUNNING' | 'FAILED' | 'RATE_LIMITED' | 'CATCHING_UP' | 'UP_TO_DATE';
+
 export interface SyncStatus {
+  status: BackendSyncStatus;
   isRunning: boolean;
   lastSuccessfulSync: string | null;
   lastFailedSync: string | null;
   lastDurationMs: number | null;
+  isCatchingUp?: boolean;
+  catchingUpStreams?: string[];
+  lastPageLimitHitAt?: string | null;
   rateLimit?: {
     isLimited: boolean;
     resetAt?: string;
@@ -38,11 +45,12 @@ export interface SyncLogEntry {
   _id: string;
   startedAt: string;
   completedAt: string | null;
-  status: 'RUNNING' | 'SUCCESS' | 'FAILED';
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED' | 'RATE_LIMITED';
   ordersSynced: number;
   dividendsSynced: number;
   cashTransactionsSynced: number;
   errorMessage: string | null;
+  pageLimitHitStreams?: string[];
 }
 
 export interface SyncRecordResult {
@@ -62,6 +70,7 @@ export interface SyncSuccessResult {
     dividends: SyncRecordResult;
     cashTransactions: SyncRecordResult;
     completedAt?: string;
+    pageLimitHitStreams?: string[];
   };
 }
 
@@ -83,6 +92,10 @@ export interface HistoryQueryParams {
   year?: number;
   page?: number;
   limit?: number;
+  side?: 'BUY' | 'SELL';
+  search?: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
 }
 
 // ─── Paginated Response ───────────────────────────────────────────────────────

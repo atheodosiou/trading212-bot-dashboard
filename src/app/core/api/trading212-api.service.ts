@@ -148,5 +148,9 @@ function buildHistoryParams(query: HistoryQueryParams): HttpParams {
   if (query.year !== undefined) params = params.set('year', String(query.year));
   if (query.page !== undefined) params = params.set('page', String(query.page));
   if (query.limit !== undefined) params = params.set('limit', String(query.limit));
+  if (query.side !== undefined) params = params.set('side', query.side);
+  if (query.search !== undefined && query.search.trim()) params = params.set('search', query.search.trim());
+  if (query.sortBy !== undefined) params = params.set('sortBy', query.sortBy);
+  if (query.sortDir !== undefined) params = params.set('sortDir', query.sortDir);
   return params;
 }

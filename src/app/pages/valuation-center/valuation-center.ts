@@ -32,6 +32,12 @@ import {
   type ResearchDriverType,
   type ResearchMacroAlignment,
   type ResearchOverallView,
+  type StockValuation,
+  type StockValuationConfidence,
+  type StockValuationDataSource,
+  type StockValuationDcfScenario,
+  type StockValuationRange,
+  type StockValuationVerdict,
 } from '../../core/api/analysis-api.service';
 import { ScoreGaugeComponent } from '../../shared/ui/score-gauge/score-gauge';
 import { VixFearGaugeWidgetComponent } from './components/vix-fear-gauge-widget/vix-fear-gauge-widget.component';
@@ -49,6 +55,11 @@ interface CategoryCard {
 interface ProfileWeightLine {
   label: string;
   value: number;
+}
+
+interface ScenarioLine {
+  label: string;
+  scenario: StockValuationDcfScenario;
 }
 
 @Component({
@@ -75,6 +86,9 @@ export class ValuationCenterPage implements OnDestroy {
   readonly reportLoading = signal(false);
   readonly reportError = signal('');
   readonly report = this.state.report;
+  readonly valuationLoading = signal(false);
+  readonly valuationError = signal('');
+  readonly valuation = signal<StockValuation | null>(null);
   readonly showResults = signal(false);
 
   readonly canGenerate = computed(() => this.selectedInstrument() !== null && !this.reportLoading());
@@ -150,7 +164,9 @@ export class ValuationCenterPage implements OnDestroy {
     this.query.set(value);
     this.selectedInstrument.set(null);
     this.report.set(null);
+    this.valuation.set(null);
     this.reportError.set('');
+    this.valuationError.set('');
     this.searchTerms.next(value);
   }
 
@@ -163,7 +179,9 @@ export class ValuationCenterPage implements OnDestroy {
     const select = event.target as HTMLSelectElement | null;
     this.selectedProfileId.set(select?.value ?? '');
     this.report.set(null);
+    this.valuation.set(null);
     this.reportError.set('');
+    this.valuationError.set('');
   }
 
   selectInstrument(result: AnalysisInstrumentSearchResult): void {
@@ -174,7 +192,9 @@ export class ValuationCenterPage implements OnDestroy {
     this.showResults.set(false);
     this.searchError.set('');
     this.report.set(null);
+    this.valuation.set(null);
     this.reportError.set('');
+    this.valuationError.set('');
   }
 
   generateReport(): void {
@@ -183,12 +203,15 @@ export class ValuationCenterPage implements OnDestroy {
 
     this.reportLoading.set(true);
     this.reportError.set('');
+    this.valuation.set(null);
+    this.valuationError.set('');
 
     const profileId = this.selectedProfileId() || undefined;
     this.analysisApi.getReport(selected.displayTicker, profileId).subscribe({
       next: report => {
         this.report.set(report);
         this.reportLoading.set(false);
+        this.loadValuation(selected.displayTicker);
       },
       error: (err: HttpErrorResponse) => {
         this.report.set(null);
@@ -200,6 +223,12 @@ export class ValuationCenterPage implements OnDestroy {
 
   refreshReport(): void {
     this.generateReport();
+  }
+
+  refreshValuation(): void {
+    const selected = this.selectedInstrument();
+    if (!selected) return;
+    this.loadValuation(selected.displayTicker, true);
   }
 
   resultSymbol(result: AnalysisInstrumentSearchResult): string {
@@ -276,6 +305,124 @@ export class ValuationCenterPage implements OnDestroy {
     if (value === null || value === undefined) return '-';
     const percent = value <= 1 ? value * 100 : value;
     return `${percent.toLocaleString('en-GB', { maximumFractionDigits: 0 })}%`;
+  }
+
+  formatCurrency(value: number | null | undefined, currency: string | null | undefined): string {
+    if (value === null || value === undefined) return 'Not available';
+    return value.toLocaleString('en-GB', {
+      style: 'currency',
+      currency: this.currencyCode(currency),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  formatCompactCurrency(value: number | null | undefined, currency: string | null | undefined): string {
+    if (value === null || value === undefined) return 'Not available';
+    return value.toLocaleString('en-GB', {
+      style: 'currency',
+      currency: this.currencyCode(currency),
+      notation: 'compact',
+      maximumFractionDigits: 2,
+    });
+  }
+
+  formatPercent(value: number | null | undefined): string {
+    if (value === null || value === undefined) return 'Not available';
+    return `${value.toLocaleString('en-GB', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}%`;
+  }
+
+  formatValuationNumber(value: number | null | undefined): string {
+    if (value === null || value === undefined) return 'Not available';
+    return value.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+  }
+
+  formatValuationDate(value: string | null | undefined): string {
+    return this.formatDate(value) || 'Not available';
+  }
+
+  formatFairValueRange(range: StockValuationRange | number | null | undefined, currency: string | null | undefined): string {
+    if (typeof range === 'number') return this.formatCurrency(range, currency);
+    if (!range || range.low === null || range.low === undefined || range.high === null || range.high === undefined) {
+      return 'Not available';
+    }
+
+    return `${this.formatCurrency(range.low, currency)} - ${this.formatCurrency(range.high, currency)}`;
+  }
+
+  valuationCompanyName(valuation: StockValuation): string {
+    return valuation.companyName?.trim() || this.companyName();
+  }
+
+  verdictLabel(verdict: StockValuationVerdict): string {
+    switch (verdict) {
+      case 'undervalued':
+        return 'Undervalued';
+      case 'fairly_valued':
+        return 'Fairly Valued';
+      case 'overvalued':
+        return 'Overvalued';
+      case 'insufficient_data':
+        return 'Insufficient Data';
+      default:
+        return verdict || 'Not available';
+    }
+  }
+
+  verdictClasses(verdict: StockValuationVerdict): string {
+    switch (verdict) {
+      case 'undervalued':
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+      case 'fairly_valued':
+        return 'bg-blue-500/10 text-blue-300 border-blue-500/30';
+      case 'overvalued':
+        return 'bg-red-500/10 text-red-300 border-red-500/30';
+      default:
+        return 'bg-slate-500/10 text-slate-300 border-slate-500/30';
+    }
+  }
+
+  valuationConfidenceLabel(confidence: StockValuationConfidence): string {
+    switch (confidence) {
+      case 'low':
+        return 'Low confidence';
+      case 'medium':
+        return 'Medium confidence';
+      case 'high':
+        return 'High confidence';
+      default:
+        return confidence || 'Not available';
+    }
+  }
+
+  confidenceClasses(confidence: StockValuationConfidence): string {
+    switch (confidence) {
+      case 'high':
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+      case 'medium':
+        return 'bg-blue-500/10 text-blue-300 border-blue-500/30';
+      case 'low':
+        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30';
+      default:
+        return 'bg-slate-500/10 text-slate-300 border-slate-500/30';
+    }
+  }
+
+  scenarioLines(scenarios: StockValuation['models']['dcfLite']['scenarios']): ScenarioLine[] {
+    return [
+      { label: 'Bear', scenario: scenarios.bear },
+      { label: 'Base', scenario: scenarios.base },
+      { label: 'Bull', scenario: scenarios.bull },
+    ];
+  }
+
+  dataSourceStatusClasses(source: StockValuationDataSource): string {
+    return source.status === 'used'
+      ? 'text-emerald-300'
+      : 'text-slate-500';
   }
 
   overallViewLabel(view: ResearchOverallView | string): string {
@@ -400,6 +547,26 @@ export class ValuationCenterPage implements OnDestroy {
     });
   }
 
+  private loadValuation(ticker: string, refresh = false): void {
+    const normalizedTicker = ticker.trim();
+    if (!normalizedTicker) return;
+
+    this.valuationLoading.set(true);
+    this.valuationError.set('');
+
+    this.analysisApi.getValuation(normalizedTicker, refresh).subscribe({
+      next: valuation => {
+        this.valuation.set(valuation);
+        this.valuationLoading.set(false);
+      },
+      error: () => {
+        this.valuation.set(null);
+        this.valuationError.set('Valuation could not be calculated for this ticker. Some required data may be unavailable.');
+        this.valuationLoading.set(false);
+      },
+    });
+  }
+
   private toSelectedInstrument(result: AnalysisInstrumentSearchResult): SelectedInstrument {
     const displayTicker = result.displayTicker?.trim() || result.ticker?.trim() || '';
     return {
@@ -444,6 +611,11 @@ export class ValuationCenterPage implements OnDestroy {
 
   private formatNumber(value: number): string {
     return value.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+  }
+
+  private currencyCode(currency: string | null | undefined): string {
+    const normalized = currency?.trim().toUpperCase();
+    return normalized || 'USD';
   }
 
   private weightLines(weights: AnalysisProfileWeights): ProfileWeightLine[] {

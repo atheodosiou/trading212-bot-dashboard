@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -11,6 +12,19 @@ import { getDisplayTicker, getInternalTicker } from '../../../core/models/ticker
 import { BadgeComponent } from '../../../shared/ui/badge/badge';
 import type { T212Order } from '../../../core/models/trading212.models';
 import type { BadgeVariant } from '../../../shared/ui/badge/badge';
+
+type OrderSideFilter = '' | 'BUY' | 'SELL';
+type OrderSortBy =
+  | 'date'
+  | 'ticker'
+  | 'instrument'
+  | 'side'
+  | 'quantity'
+  | 'price'
+  | 'netValue'
+  | 'fxRate'
+  | 'realisedPnl';
+type SortDirection = 'asc' | 'desc';
 
 @Component({
   selector: 'app-t212-orders',
@@ -28,6 +42,18 @@ export class T212OrdersPage implements OnInit {
   readonly error = signal('');
   readonly orders = signal<T212Order[]>([]);
   readonly total = signal(0);
+  readonly page = signal(1);
+  readonly limit = 200;
+  readonly sideFilter = signal<OrderSideFilter>('');
+  readonly search = signal('');
+  readonly sortBy = signal<OrderSortBy>('date');
+  readonly sortDir = signal<SortDirection>('desc');
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
+  readonly firstItem = computed(() => this.total() === 0 ? 0 : (this.page() - 1) * this.limit + 1);
+  readonly lastItem = computed(() => Math.min(this.page() * this.limit, this.total()));
+  readonly hasPreviousPage = computed(() => this.page() > 1);
+  readonly hasNextPage = computed(() => this.page() < this.totalPages());
+  readonly hasActiveFilters = computed(() => this.sideFilter() !== '' || this.search().trim() !== '');
 
   ngOnInit(): void {
     this.load();
@@ -36,10 +62,19 @@ export class T212OrdersPage implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.getOrders({ year: this.selectedYear(), limit: 200 }).subscribe({
+    this.api.getOrders({
+      year: this.selectedYear(),
+      page: this.page(),
+      limit: this.limit,
+      side: this.sideFilter() || undefined,
+      search: this.search().trim() || undefined,
+      sortBy: this.sortBy(),
+      sortDir: this.sortDir(),
+    }).subscribe({
       next: result => {
         this.orders.set(result.items);
         this.total.set(result.total);
+        this.page.set(result.page);
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
@@ -51,6 +86,57 @@ export class T212OrdersPage implements OnInit {
 
   onYearChange(event: Event): void {
     this.selectedYear.set(Number((event.target as HTMLSelectElement).value));
+    this.page.set(1);
+    this.load();
+  }
+
+  onSideFilterChange(event: Event): void {
+    this.sideFilter.set((event.target as HTMLSelectElement).value as OrderSideFilter);
+    this.page.set(1);
+    this.load();
+  }
+
+  onSearchInput(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  applySearch(): void {
+    this.page.set(1);
+    this.load();
+  }
+
+  clearFilters(): void {
+    this.sideFilter.set('');
+    this.search.set('');
+    this.page.set(1);
+    this.load();
+  }
+
+  sort(column: OrderSortBy): void {
+    if (this.sortBy() === column) {
+      this.sortDir.update(direction => direction === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortBy.set(column);
+      this.sortDir.set(column === 'date' ? 'desc' : 'asc');
+    }
+    this.page.set(1);
+    this.load();
+  }
+
+  sortIndicator(column: OrderSortBy): string {
+    if (this.sortBy() !== column) return '';
+    return this.sortDir() === 'asc' ? ' ^' : ' v';
+  }
+
+  previousPage(): void {
+    if (!this.hasPreviousPage()) return;
+    this.page.update(page => page - 1);
+    this.load();
+  }
+
+  nextPage(): void {
+    if (!this.hasNextPage()) return;
+    this.page.update(page => page + 1);
     this.load();
   }
 

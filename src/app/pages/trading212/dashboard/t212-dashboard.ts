@@ -84,37 +84,53 @@ export class T212DashboardPage implements OnInit, OnDestroy {
   readonly syncHistoryLoading = signal(false);
   readonly syncHistoryError = signal('');
 
-  // Derived sync status kind — drives badge and label
-  readonly syncStatusKind = computed((): 'running' | 'success' | 'failed' | 'rate_limited' | 'never' => {
-    const s = this.syncStatus();
-    if (!s) return 'never';
-    if (s.isRunning) return 'running';
-    if (s.rateLimit?.isLimited) return 'rate_limited';
-    const hasSuccess = s.lastSuccessfulSync != null;
-    const hasFailed = s.lastFailedSync != null;
-    if (!hasSuccess && !hasFailed) return 'never';
-    if (hasSuccess && !hasFailed) return 'success';
-    if (!hasSuccess) return 'failed';
-    return new Date(s.lastFailedSync!).getTime() > new Date(s.lastSuccessfulSync!).getTime()
-      ? 'failed'
-      : 'success';
-  });
+  // Readable labels for backend stream identifiers.
+  private readonly streamLabels: Record<string, string> = {
+    orders: 'Orders',
+    cashTransactions: 'Cash Movements',
+    dividends: 'Dividends',
+  };
 
+  private streamLabel(stream: string): string {
+    return this.streamLabels[stream] ?? stream;
+  }
+
+  readonly catchingUpStreamLabels = computed((): string[] =>
+    (this.syncStatus()?.catchingUpStreams ?? []).map(s => this.streamLabel(s)),
+  );
+
+  // Badge/label/helper text are driven directly by the backend's authoritative `status` field.
   readonly syncStatusBadgeVariant = computed((): BadgeVariant => {
-    const kind = this.syncStatusKind();
-    if (kind === 'running' || kind === 'success') return 'running';
-    if (kind === 'rate_limited') return 'warning';
-    if (kind === 'failed') return 'error';
-    return 'demo';
+    switch (this.syncStatus()?.status) {
+      case 'RUNNING': return 'demo';
+      case 'CATCHING_UP': return 'warning';
+      case 'RATE_LIMITED': return 'critical';
+      case 'FAILED': return 'error';
+      case 'UP_TO_DATE': return 'healthy';
+      default: return 'demo';
+    }
   });
 
-  readonly syncStatusLabel = computed(() => {
-    const kind = this.syncStatusKind();
-    if (kind === 'running') return 'Running';
-    if (kind === 'success') return 'Up to date';
-    if (kind === 'rate_limited') return 'Rate limited';
-    if (kind === 'failed') return 'Failed';
-    return 'Never synced';
+  readonly syncStatusLabel = computed((): string => {
+    switch (this.syncStatus()?.status) {
+      case 'RUNNING': return 'Syncing';
+      case 'CATCHING_UP': return 'Catching up';
+      case 'RATE_LIMITED': return 'Rate limited';
+      case 'FAILED': return 'Failed';
+      case 'UP_TO_DATE': return 'Up to date';
+      default: return 'Never synced';
+    }
+  });
+
+  readonly syncStatusHelperText = computed((): string => {
+    switch (this.syncStatus()?.status) {
+      case 'RUNNING': return 'Sync is currently running.';
+      case 'CATCHING_UP': return 'More Trading212 history may be available. Run sync again to continue.';
+      case 'RATE_LIMITED': return 'Trading212 rate limit is active. Try again after the reset time.';
+      case 'FAILED': return 'Last sync failed. Check sync history/logs.';
+      case 'UP_TO_DATE': return 'All enabled sync streams completed.';
+      default: return '';
+    }
   });
 
   readonly quickLinks = [
@@ -247,6 +263,12 @@ export class T212DashboardPage implements OnInit, OnDestroy {
       || !this.credentialsReady();
   }
 
+  syncButtonLabel(): string {
+    if (this.syncing() || this.syncStatus()?.isRunning) return 'Syncing...';
+    if (this.syncStatus()?.status === 'CATCHING_UP') return 'Continue Sync';
+    return 'Sync Trading212';
+  }
+
   validationBadgeVariant(status: string): 'running' | 'error' | 'demo' {
     if (status === 'valid') return 'running';
     if (status === 'invalid') return 'error';
@@ -274,9 +296,10 @@ export class T212DashboardPage implements OnInit, OnDestroy {
     return 'Disconnected';
   }
 
-  syncHistoryBadgeVariant(status: string): 'running' | 'error' | 'demo' {
+  syncHistoryBadgeVariant(status: string): BadgeVariant {
     if (status === 'SUCCESS') return 'running';
     if (status === 'FAILED') return 'error';
+    if (status === 'RATE_LIMITED') return 'warning';
     return 'demo';
   }
 
@@ -296,8 +319,14 @@ export class T212DashboardPage implements OnInit, OnDestroy {
     const orders = result.result.orders.synced;
     const dividends = result.result.dividends.synced;
     const cashMovements = result.result.cashTransactions.synced;
+    const pageLimitStreams = result.result.pageLimitHitStreams ?? [];
 
-    return `Sync complete — ${orders} new ${this.pluralize('order', orders)}, ${dividends} new ${this.pluralize('dividend', dividends)}, ${cashMovements} new ${this.pluralize('cash movement', cashMovements)}. Existing records skipped.`;
+    if (pageLimitStreams.length > 0) {
+      const streamLabels = pageLimitStreams.map(s => this.streamLabel(s)).join(', ');
+      return `Sync completed — ${orders} new ${this.pluralize('order', orders)}, ${dividends} new ${this.pluralize('dividend', dividends)}, ${cashMovements} new ${this.pluralize('cash movement', cashMovements)}. More history may be available for ${streamLabels}.`;
+    }
+
+    return 'Sync complete — account history is up to date.';
   }
 
   skippedDuplicatesMessage(result: SyncResult): string {
@@ -314,7 +343,10 @@ export class T212DashboardPage implements OnInit, OnDestroy {
 
   syncResultAlertClass(result: SyncResult): string {
     if (result.status === 'success') {
-      return 'p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm';
+      const pageLimitStreams = result.result.pageLimitHitStreams ?? [];
+      return pageLimitStreams.length > 0
+        ? 'p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-200 text-sm'
+        : 'p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm';
     }
 
     if (result.status === 'rate_limited') {

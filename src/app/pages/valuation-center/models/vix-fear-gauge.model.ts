@@ -17,6 +17,9 @@ export interface VixFearGaugeSnapshot {
 export interface VixFearGauge extends VixFearGaugeSnapshot {
   symbol: 'VIX' | string;
   description: string;
+  change: number;
+  changePercent: number;
+  dataDate: string;
   previousClose?: VixFearGaugeSnapshot | null;
   updatedAt: string;
   source: string;

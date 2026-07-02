@@ -46,6 +46,18 @@ export const routes: Routes = [
           import('./pages/valuation-center/valuation-center').then(m => m.ValuationCenterPage),
       },
       {
+        path: 'market-indices',
+        loadComponent: () =>
+          import('./pages/market-indices/market-indices-list').then(m => m.MarketIndicesListPage),
+      },
+      {
+        path: 'market-indices/:id',
+        loadComponent: () =>
+          import('./pages/market-indices/market-index-dashboard').then(
+            m => m.MarketIndexDashboardPage,
+          ),
+      },
+      {
         path: 'trading212/tax-summary',
         loadComponent: () =>
           import('./pages/trading212/tax-summary/t212-tax-summary').then(

@@ -45,7 +45,7 @@ export class AuthService {
 
   /** Dev-only mock login — only reachable when environment.enableMockLogin is true. */
   mockLogin(): void {
-    const mockUser: User = { email: 'admin@tradingbot.dev', name: 'Admin User' };
+    const mockUser: User = { email: 'admin@tradingbot.dev', name: 'Admin User', isAdmin: true, roles: ['admin'] };
     const mockToken = 'mock-jwt-token';
     this._token.set(mockToken);
     this._user.set(mockUser);

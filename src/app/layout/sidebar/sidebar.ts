@@ -39,6 +39,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: 'M9 17v-2m3 2v-4m3 4V7m4 14H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z',
   },
   {
+    path: '/market-indices',
+    label: 'Market Indices',
+    icon: 'M4 19h16M6 17V9m6 8V5m6 12v-6M5 9l7-4 7 6',
+  },
+  {
     path: '/trading212/tax-summary',
     label: 'Tax Summary',
     icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z',

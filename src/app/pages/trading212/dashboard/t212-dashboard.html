@@ -31,12 +31,12 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
-          Sync in progress…
+          {{ syncButtonLabel() }}
         } @else {
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
-          Sync Trading212
+          {{ syncButtonLabel() }}
         }
         </button>
         @if (syncStatus(); as status) {
@@ -177,7 +177,7 @@
         <p class="text-red-400 text-sm">{{ syncStatusError() }}</p>
       } @else if (syncStatus(); as s) {
         <!-- Status badge row -->
-        <div class="flex items-center gap-3 mb-5">
+        <div class="flex items-center gap-3 mb-1">
           @if (s.isRunning) {
             <svg class="w-4 h-4 text-blue-400 animate-spin shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -185,20 +185,26 @@
             </svg>
           }
           <app-badge [label]="syncStatusLabel()" [variant]="syncStatusBadgeVariant()" />
-          @if (s.isRunning) {
-            <span class="text-blue-300 text-sm">Sync in progress — page will update automatically</span>
-          }
-          @if (s.rateLimit?.isLimited) {
-            <span class="text-yellow-200 text-sm">{{ rateLimitRetryMessage(s) }}</span>
-          }
         </div>
 
+        @if (syncStatusHelperText(); as helper) {
+          <p class="text-sm text-slate-400 mb-1">{{ helper }}</p>
+        }
+
+        @if (s.status === 'CATCHING_UP' && catchingUpStreamLabels().length) {
+          <p class="text-sm text-amber-300 mb-1">Pending: {{ catchingUpStreamLabels().join(', ') }}</p>
+        }
+
+        @if (s.rateLimit?.isLimited) {
+          <p class="text-sm text-yellow-200 mb-1">{{ rateLimitRetryMessage(s) }}</p>
+        }
+
         @if (s.rateLimit?.isLimited && rateLimitQuotaMessage(s); as quotaMessage) {
-          <p class="text-xs text-slate-400 mb-5">{{ quotaMessage }}</p>
+          <p class="text-xs text-slate-400 mb-1">{{ quotaMessage }}</p>
         }
 
         <!-- Stats grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 mt-4">
           <div>
             <p class="text-xs text-slate-500 mb-0.5">Last successful sync</p>
             <p class="text-sm text-slate-200 font-mono">{{ formatDateTime(s.lastSuccessfulSync) }}</p>
@@ -211,6 +217,18 @@
             <p class="text-xs text-slate-500 mb-0.5">Last duration</p>
             <p class="text-sm text-slate-200 font-mono">{{ formatDuration(s.lastDurationMs) }}</p>
           </div>
+          @if (s.isCatchingUp && catchingUpStreamLabels().length) {
+            <div>
+              <p class="text-xs text-slate-500 mb-0.5">Catching up streams</p>
+              <p class="text-sm text-amber-300 font-medium">{{ catchingUpStreamLabels().join(', ') }}</p>
+            </div>
+          }
+          @if (s.lastPageLimitHitAt) {
+            <div>
+              <p class="text-xs text-slate-500 mb-0.5">Last page limit hit</p>
+              <p class="text-sm text-slate-200 font-mono">{{ formatDateTime(s.lastPageLimitHitAt) }}</p>
+            </div>
+          }
           <div>
             <p class="text-xs text-slate-500 mb-0.5">New Orders (Last Sync)</p>
             <p class="text-sm text-slate-200 font-semibold">{{ s.totals.ordersSynced }}</p>

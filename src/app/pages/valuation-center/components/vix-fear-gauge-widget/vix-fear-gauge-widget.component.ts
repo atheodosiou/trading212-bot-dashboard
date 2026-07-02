@@ -29,16 +29,7 @@ export class VixFearGaugeWidgetComponent implements OnInit {
     const previous = current?.previousClose;
     if (!current || !previous) return '';
 
-    const delta = current.value - previous.value;
-    const direction = delta > 0 ? 'higher' : delta < 0 ? 'lower' : 'unchanged';
-    const formattedDelta = Math.abs(delta).toLocaleString('en-GB', {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    });
-
-    return direction === 'unchanged'
-      ? `Unchanged from previous close (${this.formatVix(previous.value)})`
-      : `${formattedDelta} ${direction} than previous close (${this.formatVix(previous.value)})`;
+    return `Previous close: ${this.formatVix(previous.value)} | Change: ${this.formatSignedNumber(current.change)} (${this.formatSignedPercent(current.changePercent)})`;
   });
 
   ngOnInit(): void {
@@ -65,8 +56,8 @@ export class VixFearGaugeWidgetComponent implements OnInit {
   formatVix(value: number | null | undefined): string {
     if (value == null) return '-';
     return value.toLocaleString('en-GB', {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
   }
 
@@ -88,6 +79,24 @@ export class VixFearGaugeWidgetComponent implements OnInit {
     if (!value) return '-';
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-GB');
+  }
+
+  formatDataDate(value: string | null | undefined): string {
+    return value?.trim() || '-';
+  }
+
+  private formatSignedNumber(value: number | null | undefined): string {
+    if (value == null) return '-';
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toLocaleString('en-GB', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  private formatSignedPercent(value: number | null | undefined): string {
+    if (value == null) return '-';
+    return `${this.formatSignedNumber(value)}%`;
   }
 
   private fearScoreClasses(score: number): string {

@@ -106,6 +106,99 @@ export interface AnalysisInstrumentSearchResult {
   exchange?: string | null;
 }
 
+export type StockValuationVerdict =
+  | 'undervalued'
+  | 'fairly_valued'
+  | 'overvalued'
+  | 'insufficient_data'
+  | string;
+
+export type StockValuationConfidence = 'low' | 'medium' | 'high' | string;
+
+export interface StockValuationRange {
+  low: number | null;
+  base: number | null;
+  high: number | null;
+}
+
+export interface StockValuationRelativeModel {
+  fairValue: StockValuationRange | number | null;
+  impliedPe: number | null;
+  fairPe: number | null;
+  currentPe: number | null;
+  currentPs: number | null;
+  currentPb: number | null;
+  notes: string[];
+}
+
+export interface StockValuationDcfInputs {
+  freeCashFlow: number | null;
+  sharesOutstanding: number | null;
+  netDebt: number | null;
+  revenueGrowthRate: number | null;
+  source: string | null;
+}
+
+export interface StockValuationDcfScenario {
+  fairValue: number | null;
+  growthRate: number | null;
+  discountRate: number | null;
+  terminalGrowth: number | null;
+}
+
+export interface StockValuationDcfModel {
+  fairValue: StockValuationRange | number | null;
+  fcfYield: number | null;
+  fcfMargin: number | null;
+  inputs: StockValuationDcfInputs;
+  scenarios: {
+    bear: StockValuationDcfScenario;
+    base: StockValuationDcfScenario;
+    bull: StockValuationDcfScenario;
+  };
+  notes: string[];
+}
+
+export interface StockValuationAssumptions {
+  riskFreeRate: number | null;
+  equityRiskPremium: number | null;
+  terminalGrowthRate: number | null;
+  discountRateFormula: string | null;
+  sourcePriority: string[];
+}
+
+export interface StockValuationDataQuality {
+  available: string[];
+  missing: string[];
+  warnings: string[];
+}
+
+export interface StockValuationDataSource {
+  name: string;
+  status: 'used' | 'unavailable' | string;
+  notes?: string | null;
+}
+
+export interface StockValuation {
+  ticker: string;
+  companyName: string | null;
+  currency: string;
+  currentPrice: number | null;
+  marketCap: number | null;
+  fairValue: StockValuationRange | null;
+  marginOfSafetyPercent: number | null;
+  verdict: StockValuationVerdict;
+  confidence: StockValuationConfidence;
+  models: {
+    relative: StockValuationRelativeModel;
+    dcfLite: StockValuationDcfModel;
+  };
+  assumptions: StockValuationAssumptions;
+  dataQuality: StockValuationDataQuality;
+  dataSources: StockValuationDataSource[];
+  generatedAt: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AnalysisApiService {
   private readonly http = inject(HttpClient);
@@ -128,5 +221,10 @@ export class AnalysisApiService {
   searchInstruments(query: string): Observable<AnalysisInstrumentSearchResult[]> {
     const params = new HttpParams().set('q', query);
     return this.http.get<AnalysisInstrumentSearchResult[]>(`${this.base}/search-instruments`, { params });
+  }
+
+  getValuation(ticker: string, refresh = false): Observable<StockValuation> {
+    const options = refresh ? { params: new HttpParams().set('refresh', 'true') } : {};
+    return this.http.get<StockValuation>(`${this.base}/valuation/${encodeURIComponent(ticker)}`, options);
   }
 }
