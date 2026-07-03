@@ -303,6 +303,21 @@ export class T212DashboardPage implements OnInit, OnDestroy {
     return 'demo';
   }
 
+  syncModeLabel(mode: SyncLogEntry['mode']): string {
+    switch (mode) {
+      case 'bootstrap': return 'Bootstrap';
+      case 'incremental': return 'Incremental';
+      case 'catchup': return 'Catch-up';
+      case 'reconcile': return 'Reconcile';
+      case 'full_rebuild': return 'Full rebuild';
+      default: return 'Legacy';
+    }
+  }
+
+  syncModeBadgeVariant(mode: SyncLogEntry['mode']): BadgeVariant {
+    return mode === 'reconcile' ? 'critical' : 'default';
+  }
+
   syncResultMessage(result: SyncResult): string {
     if (result.status === 'rate_limited') {
       if (result.resetAt) {

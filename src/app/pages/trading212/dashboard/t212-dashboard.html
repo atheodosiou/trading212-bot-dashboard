@@ -337,6 +337,7 @@
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Started At</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Completed At</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mode</th>
                   <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Orders</th>
                   <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Dividends</th>
                   <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cash Movements</th>
@@ -352,6 +353,12 @@
                       <app-badge
                         [label]="entry.status"
                         [variant]="syncHistoryBadgeVariant(entry.status)"
+                      />
+                    </td>
+                    <td class="px-4 py-3">
+                      <app-badge
+                        [label]="syncModeLabel(entry.mode)"
+                        [variant]="syncModeBadgeVariant(entry.mode)"
                       />
                     </td>
                     <td class="px-4 py-3 text-slate-300 text-right">{{ entry.ordersSynced }}</td>

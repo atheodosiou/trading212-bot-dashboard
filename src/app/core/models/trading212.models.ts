@@ -46,6 +46,7 @@ export interface SyncLogEntry {
   startedAt: string;
   completedAt: string | null;
   status: 'RUNNING' | 'SUCCESS' | 'FAILED' | 'RATE_LIMITED';
+  mode?: 'bootstrap' | 'incremental' | 'catchup' | 'reconcile' | 'full_rebuild';
   ordersSynced: number;
   dividendsSynced: number;
   cashTransactionsSynced: number;
