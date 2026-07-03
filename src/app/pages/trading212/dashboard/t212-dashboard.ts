@@ -318,6 +318,23 @@ export class T212DashboardPage implements OnInit, OnDestroy {
     return mode === 'reconcile' ? 'critical' : 'default';
   }
 
+  reconcileSummary(entry: SyncLogEntry): { inserted: number; changed: number; unchanged: number } | null {
+    const stats = entry.reconcileStats;
+    if (!stats) return null;
+
+    const streams = [stats.orders, stats.dividends, stats.cashTransactions];
+    let inserted = 0;
+    let changed = 0;
+    let unchanged = 0;
+    for (const s of streams) {
+      inserted += s?.inserted ?? 0;
+      changed += s?.changed ?? 0;
+      unchanged += s?.unchanged ?? 0;
+    }
+
+    return { inserted, changed, unchanged };
+  }
+
   syncResultMessage(result: SyncResult): string {
     if (result.status === 'rate_limited') {
       if (result.resetAt) {

@@ -41,6 +41,12 @@ export interface SyncStatus {
   };
 }
 
+export interface ReconcileStreamStats {
+  inserted: number;
+  changed: number;
+  unchanged: number;
+}
+
 export interface SyncLogEntry {
   _id: string;
   startedAt: string;
@@ -51,6 +57,11 @@ export interface SyncLogEntry {
   dividendsSynced: number;
   cashTransactionsSynced: number;
   errorMessage: string | null;
+  reconcileStats?: {
+    orders?: ReconcileStreamStats;
+    dividends?: ReconcileStreamStats;
+    cashTransactions?: ReconcileStreamStats;
+  };
   pageLimitHitStreams?: string[];
 }
 

@@ -360,6 +360,15 @@
                         [label]="syncModeLabel(entry.mode)"
                         [variant]="syncModeBadgeVariant(entry.mode)"
                       />
+                      @if (entry.mode === 'reconcile') {
+                        @if (reconcileSummary(entry); as r) {
+                          <p class="text-xs text-slate-400 mt-1 whitespace-nowrap">
+                            Inserted: {{ r.inserted }} · <span [class]="r.changed > 0 ? 'text-amber-300 font-semibold' : 'text-slate-400'">Changed: {{ r.changed }}</span> · Unchanged: {{ r.unchanged }}
+                          </p>
+                        } @else {
+                          <p class="text-xs text-slate-500 mt-1">No details</p>
+                        }
+                      }
                     </td>
                     <td class="px-4 py-3 text-slate-300 text-right">{{ entry.ordersSynced }}</td>
                     <td class="px-4 py-3 text-slate-300 text-right">{{ entry.dividendsSynced }}</td>
